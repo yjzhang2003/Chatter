@@ -1,12 +1,4 @@
-<p> 
-  <img src="./screenshots/cover.jpg" alt="cover">
-</p>
-
-<a href="https://github.com/chouaibMo/ChatGemini">
-<img src="./screenshots/logo.png" align="right" width="12%"/>
-</a>
-
-# 🤖 ChatApp - 多平台智能聊天应用
+# 🤖 Chatter - 多平台智能聊天应用
 
 ## 💡 项目简介
 
@@ -67,8 +59,8 @@
 
 1. **克隆项目**：
 ```bash
-git clone https://github.com/yjzhang2003/ChatApp.git
-cd ChatApp
+git clone https://github.com/yjzhang2003/Chatter.git
+cd Chatter
 ```
 
 2. **配置 API 密钥**：
