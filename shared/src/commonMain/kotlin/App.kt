@@ -13,12 +13,18 @@ import presentation.ui.screen.CustomModelConfigViewModel
 import presentation.ui.screen.ApiManagementViewModel
 import presentation.ui.screen.ConversationListViewModel
 import presentation.ui.screen.ConversationDetailViewModel
+import presentation.ui.screen.AgentSelectionScreen
+import presentation.ui.screen.AgentEditScreen
+import presentation.ui.screen.AgentViewModel
 import presentation.ui.component.BottomNavigationBar
 import presentation.ui.component.BottomNavTab
 import domain.model.Conversation
+import domain.model.Agent
 import data.repository.ConversationRepositoryImpl
+import data.repository.AgentRepositoryImpl
 import data.database.ConversationDao
 import data.database.ChatMessageDao
+import data.database.AgentDao
 import di.PlatformModule
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +40,8 @@ fun App() {
     var currentScreen by remember { mutableStateOf(Screen.ConversationList) }
     var editingModelId by remember { mutableStateOf<String?>(null) }
     var selectedConversation by remember { mutableStateOf<Conversation?>(null) }
+    var selectedAgent by remember { mutableStateOf<Agent?>(null) }
+    var isEditingAgent by remember { mutableStateOf(false) }
     val chatViewModel = remember { ChatViewModel() }
     val customModelConfigViewModel = remember { CustomModelConfigViewModel() }
     val apiManagementViewModel = remember { ApiManagementViewModel() }
@@ -43,10 +51,13 @@ fun App() {
     val sqlDriver = remember { databaseDriverFactory.createDriver() }
     val conversationDao = remember { ConversationDao(sqlDriver) }
     val chatMessageDao = remember { ChatMessageDao(sqlDriver) }
+    val agentDao = remember { AgentDao(sqlDriver) }
     val conversationRepository = remember { ConversationRepositoryImpl() }
+    val agentRepository = remember { AgentRepositoryImpl(agentDao) }
     
     val conversationListViewModel = remember { ConversationListViewModel(conversationRepository) }
     val conversationDetailViewModel = remember { ConversationDetailViewModel(conversationRepository) }
+    val agentViewModel = remember { AgentViewModel(agentRepository) }
     
     ChatterTheme {
         Scaffold(
@@ -91,9 +102,58 @@ fun App() {
                                 conversationDetailViewModel.resetStatus()
                                 currentScreen = Screen.ConversationList
                                 selectedConversation = null
+                            },
+                            onAgentSettingsClick = {
+                                currentScreen = Screen.AgentSelection
                             }
                         )
                     }
+                }
+                Screen.AgentSelection -> {
+                    val agentUiState by agentViewModel.uiState
+                    AgentSelectionScreen(
+                        agents = agentUiState.agents,
+                        currentAgentId = null, // TODO: 从当前对话获取智能体ID
+                        onBackClick = {
+                            currentScreen = Screen.Chat
+                        },
+                        onAgentSelected = { agent ->
+                            // TODO: 将选中的智能体应用到当前对话
+                            currentScreen = Screen.Chat
+                        },
+                        onCreateAgentClick = {
+                            selectedAgent = null
+                            isEditingAgent = false
+                            currentScreen = Screen.AgentEdit
+                        }
+                    )
+                }
+                Screen.AgentEdit -> {
+                    AgentEditScreen(
+                        agent = selectedAgent,
+                        onBackClick = {
+                            currentScreen = Screen.AgentSelection
+                        },
+                        onSaveClick = { name, description, systemPrompt, avatar ->
+                            if (isEditingAgent && selectedAgent != null) {
+                                agentViewModel.updateAgent(
+                                    selectedAgent!!.id,
+                                    name,
+                                    description,
+                                    systemPrompt,
+                                    avatar
+                                )
+                            } else {
+                                agentViewModel.createAgent(
+                                    name,
+                                    description,
+                                    systemPrompt,
+                                    avatar
+                                )
+                            }
+                            currentScreen = Screen.AgentSelection
+                        }
+                    )
                 }
                 Screen.Settings -> {
                     SettingsScreen(
@@ -165,7 +225,9 @@ enum class Screen {
     ConversationList,
     ApiManagement,
     CustomModelConfig,
-    ConversationDetail
+    ConversationDetail,
+    AgentSelection,
+    AgentEdit
 }
 
 /**

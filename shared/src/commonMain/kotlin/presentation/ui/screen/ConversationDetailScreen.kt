@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +29,8 @@ import kotlinx.coroutines.launch
 fun ConversationDetailScreen(
     conversation: Conversation,
     viewModel: ConversationDetailViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onAgentSettingsClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState
     val listState = rememberLazyListState()
@@ -69,6 +71,14 @@ fun ConversationDetailScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "返回"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onAgentSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "智能体设置"
                         )
                     }
                 },
