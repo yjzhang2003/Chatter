@@ -1,6 +1,7 @@
 package presentation
 
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import presentation.theme.ChatterTheme
 import presentation.ui.screen.ChatScreen
 import presentation.ui.screen.ApiManagementScreen
@@ -52,11 +53,12 @@ fun App() {
     val conversationDao = remember { ConversationDao(sqlDriver) }
     val chatMessageDao = remember { ChatMessageDao(sqlDriver) }
     val agentDao = remember { AgentDao(sqlDriver) }
-    val conversationRepository = remember { ConversationRepositoryImpl() }
     val agentRepository = remember { AgentRepositoryImpl(agentDao) }
     
-    val conversationListViewModel = remember { ConversationListViewModel(conversationRepository) }
-    val conversationDetailViewModel = remember { ConversationDetailViewModel(conversationRepository) }
+    // 对话仓库
+    val conversationRepository = ConversationRepositoryImpl()
+    val conversationListViewModel = ConversationListViewModel(conversationRepository)
+    val conversationDetailViewModel = ConversationDetailViewModel(conversationRepository, agentRepository)
     val agentViewModel = remember { AgentViewModel(agentRepository) }
     
     ChatterTheme {
@@ -93,9 +95,15 @@ fun App() {
                 }
                 Screen.Chat -> {
                     selectedConversation?.let { conversation ->
+                        // 根据对话的agentId获取当前智能体
+                        val currentAgent = conversation.agentId?.let { agentId ->
+                            agentViewModel.getAgentById(agentId)
+                        }
+                        
                         ConversationDetailScreen(
                             conversation = conversation,
                             viewModel = conversationDetailViewModel,
+                            currentAgent = currentAgent,
                             onBackClick = { 
                                 // 清理ViewModel状态，防止内存泄漏
                                 conversationDetailViewModel.clearError()
@@ -113,12 +121,19 @@ fun App() {
                     val agentUiState by agentViewModel.uiState
                     AgentSelectionScreen(
                         agents = agentUiState.agents,
-                        currentAgentId = null, // TODO: 从当前对话获取智能体ID
+                        currentAgentId = selectedConversation?.agentId,
                         onBackClick = {
                             currentScreen = Screen.Chat
                         },
                         onAgentSelected = { agent ->
-                            // TODO: 将选中的智能体应用到当前对话
+                            // 更新当前对话的智能体
+                            selectedConversation?.let { conversation ->
+                                val updatedConversation = conversation.copy(agentId = agent.id)
+                                selectedConversation = updatedConversation
+                                
+                                // 增加智能体使用次数
+                                agentViewModel.incrementAgentUsage(agent.id)
+                            }
                             currentScreen = Screen.Chat
                         },
                         onCreateAgentClick = {

@@ -3,20 +3,23 @@ package presentation.ui.screen
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import data.repository.ConversationRepository
+import domain.repository.AgentRepository
 import data.repository.AIRepositoryImpl
 import domain.manager.ConversationManager
 import dev.icerock.moko.mvvm.viewmodel.ViewModel
 import domain.model.Conversation
 import domain.model.ChatMessage
+import domain.model.MessageSender
 import domain.model.Status
 import kotlinx.coroutines.launch
 
 /**
  * 对话详情页面的ViewModel
- * 管理特定对话的消息显示和发送功能
+ * 管理特定对话的消息显示和发送功能，支持智能体集成
  */
 class ConversationDetailViewModel(
-    private val conversationRepository: ConversationRepository
+    private val conversationRepository: ConversationRepository,
+    private val agentRepository: AgentRepository
 ) : ViewModel() {
     
     private val _uiState = mutableStateOf(ConversationDetailUiState())
@@ -124,19 +127,42 @@ class ConversationDetailViewModel(
                     messages = _uiState.value.messages + aiMessage
                 )
                 
-                // 获取上下文消息（历史对话），使用基于token的智能选择策略
-                val contextMessages = conversationManager.getContextMessages(
+                // 获取当前对话的智能体信息
+                val currentConversation = _uiState.value.conversation
+                val agent = currentConversation?.agentId?.let { agentId ->
+                    agentRepository.getAgentById(agentId)
+                }
+                
+                // 构建包含智能体系统提示的上下文消息
+                val contextMessages = mutableListOf<ChatMessage>()
+                
+                // 如果有智能体，添加系统提示作为第一条消息
+                agent?.let { agentInfo ->
+                    if (agentInfo.systemPrompt.isNotBlank()) {
+                        val systemMessage = ChatMessage.create(
+                            conversationId = conversationId,
+                            content = agentInfo.systemPrompt,
+                            sender = MessageSender.AI
+                        )
+                        contextMessages.add(systemMessage)
+                        println("Debug: 添加智能体系统提示: ${agentInfo.name} - ${agentInfo.systemPrompt.take(50)}...")
+                    }
+                }
+                
+                // 获取历史对话上下文消息
+                val historyMessages = conversationManager.getContextMessages(
                     currentPrompt = text,
                     useTokenOptimization = true
                 )
+                contextMessages.addAll(historyMessages)
                 
                 // 添加调试日志
-                println("Debug: 获取到 ${contextMessages.size} 条上下文消息")
+                println("Debug: 总共获取到 ${contextMessages.size} 条上下文消息（包含智能体系统提示）")
                 contextMessages.forEachIndexed { index, message ->
                     println("Debug: 上下文消息 $index: ${message.sender} - ${message.content.take(50)}...")
                 }
                 
-                // 生成AI回复，传递上下文消息
+                // 生成AI回复，传递包含智能体系统提示的上下文消息
                 val aiResponse = when (val result = aiRepository.generate(text, emptyList(), contextMessages)) {
                     is Status.Success -> result.data
                     is Status.Error -> result.message

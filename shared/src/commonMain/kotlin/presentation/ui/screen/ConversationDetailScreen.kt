@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import domain.model.Conversation
 import domain.model.ChatMessage
 import domain.model.Status
+import domain.model.Agent
 import presentation.ui.component.CustomBottomBar
 import presentation.ui.component.MessageBubble
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ import kotlinx.coroutines.launch
 fun ConversationDetailScreen(
     conversation: Conversation,
     viewModel: ConversationDetailViewModel,
+    currentAgent: Agent? = null,
     onBackClick: () -> Unit,
     onAgentSettingsClick: () -> Unit = {}
 ) {
@@ -59,11 +61,27 @@ fun ConversationDetailScreen(
                             text = conversation.getDisplayTitle(),
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = "${uiState.messages.size} 条消息",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${uiState.messages.size} 条消息",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            currentAgent?.let { agent ->
+                                Text(
+                                    text = " • ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${agent.avatar} ${agent.name}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 },
                 navigationIcon = {
