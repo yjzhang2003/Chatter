@@ -13,9 +13,14 @@ interface AIRepository {
      * 生成内容
      * @param prompt 文本提示
      * @param images 图片列表（可选）
+     * @param contextMessages 历史上下文消息（可选）
      * @return 生成结果状态
      */
-    suspend fun generate(prompt: String, images: List<ByteArray> = emptyList()): Status
+    suspend fun generate(
+        prompt: String, 
+        images: List<ByteArray> = emptyList(),
+        contextMessages: List<domain.model.ChatMessage> = emptyList()
+    ): Status
     
     /**
      * 获取当前选择的AI模型

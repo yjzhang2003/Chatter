@@ -21,7 +21,11 @@ class AIRepositoryImpl : AIRepository {
     /**
      * 生成内容
      */
-    override suspend fun generate(prompt: String, images: List<ByteArray>): Status {
+    override suspend fun generate(
+        prompt: String, 
+        images: List<ByteArray>,
+        contextMessages: List<domain.model.ChatMessage>
+    ): Status {
         return try {
             val currentModel = getCurrentModel()
             val aiService = serviceFactory.createService(currentModel)
@@ -42,8 +46,8 @@ class AIRepositoryImpl : AIRepository {
                 return Status.Error("${currentModel.displayName}不支持图片输入")
             }
             
-            // 调用AI服务生成内容
-            val response = aiService.generateContent(prompt, images)
+            // 调用AI服务生成内容，传递历史上下文消息
+            val response = aiService.generateContent(prompt, images, contextMessages)
             
             // 直接返回AI服务的响应状态
             response

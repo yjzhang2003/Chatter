@@ -146,9 +146,33 @@ class ConversationManager(
      * @param limit 最大消息数量
      * @return 上下文消息列表
      */
-    suspend fun getContextMessages(limit: Int = 10): List<ChatMessage> {
+    /**
+     * 获取上下文消息，支持基于token限制的智能选择
+     * @param limit 消息数量限制（传统方式）
+     * @param currentPrompt 当前用户输入（用于token计算）
+     * @param useTokenOptimization 是否使用基于token的优化策略
+     * @return 优化后的上下文消息列表
+     */
+    suspend fun getContextMessages(
+        limit: Int = 10,
+        currentPrompt: String = "",
+        useTokenOptimization: Boolean = true
+    ): List<ChatMessage> {
         val currentConv = _currentConversation.value ?: return emptyList()
-        return conversationRepository.getContextMessages(currentConv.id, limit)
+        
+        return if (useTokenOptimization && currentPrompt.isNotEmpty()) {
+            // 使用基于token的智能选择策略
+            val recommendedLimit = domain.util.ContextMessageSelector.getRecommendedMessageCount(currentConv.aiModel)
+            val allMessages = conversationRepository.getContextMessages(currentConv.id, recommendedLimit)
+            domain.util.ContextMessageSelector.selectContextMessages(
+                messages = allMessages,
+                currentPrompt = currentPrompt,
+                aiModel = currentConv.aiModel
+            )
+        } else {
+            // 使用传统的数量限制方式
+            conversationRepository.getContextMessages(currentConv.id, limit)
+        }
     }
 
     /**

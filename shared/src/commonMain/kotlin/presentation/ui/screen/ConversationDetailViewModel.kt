@@ -76,6 +76,9 @@ class ConversationDetailViewModel(
         
         viewModelScope.launch {
             try {
+                // 确保ConversationManager切换到当前对话
+                conversationManager.switchToConversation(conversationId)
+                
                 // 创建用户消息
                 val userMessage = ChatMessage.createUserMessage(
                     conversationId = conversationId,
@@ -102,8 +105,20 @@ class ConversationDetailViewModel(
                     messages = _uiState.value.messages + aiMessage
                 )
                 
-                // 生成AI回复
-                val aiResponse = when (val result = aiRepository.generate(text)) {
+                // 获取上下文消息（历史对话），使用基于token的智能选择策略
+                val contextMessages = conversationManager.getContextMessages(
+                    currentPrompt = text,
+                    useTokenOptimization = true
+                )
+                
+                // 添加调试日志
+                println("Debug: 获取到 ${contextMessages.size} 条上下文消息")
+                contextMessages.forEachIndexed { index, message ->
+                    println("Debug: 上下文消息 $index: ${message.sender} - ${message.content.take(50)}...")
+                }
+                
+                // 生成AI回复，传递上下文消息
+                val aiResponse = when (val result = aiRepository.generate(text, emptyList(), contextMessages)) {
                     is Status.Success -> result.data
                     is Status.Error -> result.message
                     else -> "生成回复失败"

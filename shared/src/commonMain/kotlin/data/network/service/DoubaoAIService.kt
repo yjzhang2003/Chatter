@@ -60,20 +60,37 @@ class DoubaoAIService : AIService {
     /**
      * 生成内容
      */
-    override suspend fun generateContent(prompt: String, images: List<ByteArray>): Status {
+    override suspend fun generateContent(
+        prompt: String, 
+        images: List<ByteArray>,
+        contextMessages: List<domain.model.ChatMessage>
+    ): Status {
         if (apiKey.isEmpty()) {
             return Status.Error("API key is required for Doubao")
         }
         
         return try {
+            // 构建消息列表，包含历史上下文
+            val messages = mutableListOf<DoubaoMessage>()
+            
+            // 添加历史消息
+            contextMessages.forEach { message ->
+                when (message.sender) {
+                    domain.model.MessageSender.USER -> {
+                        messages.add(DoubaoMessage(role = "user", content = message.content))
+                    }
+                    domain.model.MessageSender.AI -> {
+                        messages.add(DoubaoMessage(role = "assistant", content = message.content))
+                    }
+                }
+            }
+            
+            // 添加当前用户消息
+            messages.add(DoubaoMessage(role = "user", content = prompt))
+            
             val request = DoubaoRequest(
                 model = MODEL_NAME,
-                messages = listOf(
-                    DoubaoMessage(
-                        role = "user",
-                        content = prompt
-                    )
-                )
+                messages = messages
             )
             
             val response = client.post("$BASE_URL/chat/completions") {

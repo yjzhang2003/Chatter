@@ -61,9 +61,29 @@ class GeminiService {
     // endregion
 
     // region API calls
-    suspend fun generateContent(prompt: String, images: List<ByteArray>): Response {
+    /**
+     * 生成内容，支持上下文消息
+     * @param prompt 用户输入的提示
+     * @param images 图片列表
+     * @param contextMessages 上下文消息列表
+     * @return API响应
+     */
+    suspend fun generateContent(
+        prompt: String, 
+        images: List<ByteArray>, 
+        contextMessages: List<domain.model.ChatMessage> = emptyList()
+    ): Response {
         return makeApiRequest("$BASE_URL/v1beta/models/gemini-1.5-pro:generateContent?key=$apiKey") {
-            addText(prompt)
+            // 添加上下文消息
+            contextMessages.forEach { message ->
+                when (message.sender) {
+                    domain.model.MessageSender.USER -> addText("用户: ${message.content}")
+                    domain.model.MessageSender.AI -> addText("助手: ${message.content}")
+                }
+            }
+            // 添加当前用户输入
+            addText("用户: $prompt")
+            // 添加图片
             addImages(images)
         }
     }

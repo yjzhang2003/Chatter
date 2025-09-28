@@ -71,7 +71,11 @@ class CustomAIService(
     /**
      * 生成内容
      */
-    override suspend fun generateContent(prompt: String, images: List<ByteArray>): Status {
+    override suspend fun generateContent(
+        prompt: String, 
+        images: List<ByteArray>,
+        contextMessages: List<domain.model.ChatMessage>
+    ): Status {
         if (customModel.apiKeyRequired && apiKey.isEmpty()) {
             return Status.Error("API key is required for ${customModel.displayName}")
         }
@@ -84,14 +88,14 @@ class CustomAIService(
         return try {
             when (customModel.requestFormat) {
                 CustomAIModel.RequestFormat.OPENAI_COMPATIBLE -> {
-                    callOpenAICompatibleAPI(prompt, images)
+                    callOpenAICompatibleAPI(prompt, images, contextMessages)
                 }
                 CustomAIModel.RequestFormat.GEMINI -> {
-                    callGeminiCompatibleAPI(prompt, images)
+                    callGeminiCompatibleAPI(prompt, images, contextMessages)
                 }
                 CustomAIModel.RequestFormat.CUSTOM -> {
                     // 对于自定义格式，使用OpenAI兼容格式作为默认
-                    callOpenAICompatibleAPI(prompt, images)
+                    callOpenAICompatibleAPI(prompt, images, contextMessages)
                 }
             }
         } catch (e: Exception) {
@@ -102,9 +106,26 @@ class CustomAIService(
     /**
      * 调用OpenAI兼容的API
      */
-    private suspend fun callOpenAICompatibleAPI(prompt: String, images: List<ByteArray>): Status {
+    private suspend fun callOpenAICompatibleAPI(
+        prompt: String, 
+        images: List<ByteArray>,
+        contextMessages: List<domain.model.ChatMessage>
+    ): Status {
         val messages = mutableListOf<OpenAIMessage>()
         
+        // 添加历史上下文消息
+        contextMessages.forEach { message ->
+            when (message.sender) {
+                domain.model.MessageSender.USER -> {
+                    messages.add(OpenAIMessage(role = "user", content = JsonPrimitive(message.content)))
+                }
+                domain.model.MessageSender.AI -> {
+                    messages.add(OpenAIMessage(role = "assistant", content = JsonPrimitive(message.content)))
+                }
+            }
+        }
+        
+        // 添加当前用户消息
         if (images.isNotEmpty() && customModel.supportsMultimodal) {
             // 多模态消息
             val contentArray = buildJsonArray {
@@ -194,8 +215,29 @@ class CustomAIService(
     /**
      * 调用Gemini兼容的API
      */
-    private suspend fun callGeminiCompatibleAPI(prompt: String, images: List<ByteArray>): Status {
-        // 使用现有的Gemini格式，但使用自定义的URL和模型名
+    private suspend fun callGeminiCompatibleAPI(
+        prompt: String, 
+        images: List<ByteArray>,
+        contextMessages: List<domain.model.ChatMessage>
+    ): Status {
+        // 构建Gemini格式的contents数组
+        val contents = mutableListOf<JsonObject>()
+        
+        // 添加历史上下文消息
+        contextMessages.forEach { message ->
+            val role = when (message.sender) {
+                domain.model.MessageSender.USER -> "user"
+                domain.model.MessageSender.AI -> "model"
+            }
+            
+            val parts = listOf(Json.parseToJsonElement("""{"text": "${message.content}"}""") as JsonObject)
+            val content = Json.parseToJsonElement(
+                """{"role": "$role", "parts": ${Json.encodeToString(parts)}}"""
+            ) as JsonObject
+            contents.add(content)
+        }
+        
+        // 添加当前用户消息
         val parts = mutableListOf<JsonObject>()
         
         // 添加文本部分
@@ -209,8 +251,13 @@ class CustomAIService(
             parts.add(imageData)
         }
         
+        val currentContent = Json.parseToJsonElement(
+            """{"role": "user", "parts": ${Json.encodeToString(parts)}}"""
+        ) as JsonObject
+        contents.add(currentContent)
+        
         val request = Json.parseToJsonElement(
-            """{"contents": [{"parts": ${Json.encodeToString(parts)}}]}"""
+            """{"contents": ${Json.encodeToString(contents)}}"""
         ) as JsonObject
         
         val url = if (customModel.apiUrl.contains("?")) {

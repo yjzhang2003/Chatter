@@ -16,9 +16,23 @@ class GeminiAIService : AIService {
     /**
      * 生成内容
      */
-    override suspend fun generateContent(prompt: String, images: List<ByteArray>): Status {
+    /**
+     * 生成内容，支持上下文消息传递
+     * @param prompt 用户输入的提示
+     * @param images 图片列表
+     * @param contextMessages 上下文消息列表
+     * @return 生成结果状态
+     */
+    override suspend fun generateContent(
+        prompt: String, 
+        images: List<ByteArray>,
+        contextMessages: List<domain.model.ChatMessage>
+    ): Status {
         return try {
-            val response = geminiService.generateContent(prompt, images)
+            // 添加调试日志
+            println("Debug: GeminiAIService 接收到 ${contextMessages.size} 条上下文消息")
+            
+            val response = geminiService.generateContent(prompt, images, contextMessages)
             
             response.error?.let {
                 Status.Error(it.message)

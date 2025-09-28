@@ -12,9 +12,14 @@ interface AIService {
      * 生成内容
      * @param prompt 文本提示
      * @param images 图片数据列表（可选）
+     * @param contextMessages 上下文历史消息列表（可选）
      * @return 生成结果状态
      */
-    suspend fun generateContent(prompt: String, images: List<ByteArray> = emptyList()): Status
+    suspend fun generateContent(
+        prompt: String, 
+        images: List<ByteArray> = emptyList(),
+        contextMessages: List<domain.model.ChatMessage> = emptyList()
+    ): Status
     
     /**
      * 获取API密钥
