@@ -26,7 +26,6 @@ import domain.model.Status
 import kotlinx.coroutines.launch
 import presentation.theme.LightGreen
 import presentation.theme.LightRed
-import presentation.ui.component.CustomAppBar
 import presentation.ui.component.CustomBottomBar
 import presentation.ui.component.CustomDialog
 import presentation.ui.component.CustomSnackBar
@@ -37,8 +36,7 @@ import presentation.ui.extension.showSnackBar
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = ChatViewModel(),
-    onApiManagementClick: () -> Unit = {},
-    onConversationListClick: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     val chatUiState = viewModel.uiState
     val focusManager = LocalFocusManager.current
@@ -53,13 +51,6 @@ fun ChatScreen(
     }
 
     Scaffold(
-        topBar = {
-            CustomAppBar(
-                onActionClick = onApiManagementClick,
-                onConversationListClick = onConversationListClick,
-                currentModel = chatUiState.value.currentModel
-            )
-        },
         bottomBar = {
             CustomBottomBar(
                 modifier = Modifier
@@ -90,7 +81,7 @@ fun ChatScreen(
         },
         modifier = Modifier.pointerInput(Unit) {
             detectTapGestures(onTap = { focusManager.clearFocus() })
-        },
+        }.then(modifier),
     ) { paddingValues ->
         ChatList(
             modifier = Modifier.padding(paddingValues),

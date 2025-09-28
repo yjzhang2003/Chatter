@@ -7,24 +7,31 @@ import presentation.ui.screen.ApiManagementScreen
 import presentation.ui.screen.CustomModelConfigScreen
 import presentation.ui.screen.ConversationListScreen
 import presentation.ui.screen.ConversationDetailScreen
+import presentation.ui.screen.SettingsScreen
 import presentation.ui.screen.ChatViewModel
 import presentation.ui.screen.CustomModelConfigViewModel
 import presentation.ui.screen.ApiManagementViewModel
 import presentation.ui.screen.ConversationListViewModel
 import presentation.ui.screen.ConversationDetailViewModel
+import presentation.ui.component.BottomNavigationBar
+import presentation.ui.component.BottomNavTab
 import domain.model.Conversation
 import data.repository.ConversationRepositoryImpl
 import data.database.ConversationDao
 import data.database.ChatMessageDao
 import di.PlatformModule
+import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 
 /**
  * 应用程序的主入口
- * 管理聊天页面、API管理页面、自定义模型配置页面、对话列表页面和对话详情页面之间的导航
+ * 使用底部导航栏管理对话列表和设置功能
  */
 @Composable
 fun App() {
-    var currentScreen by remember { mutableStateOf(Screen.Chat) }
+    var selectedTab by remember { mutableStateOf(BottomNavTab.CONVERSATIONS) }
+    var currentScreen by remember { mutableStateOf(Screen.ConversationList) }
     var editingModelId by remember { mutableStateOf<String?>(null) }
     var selectedConversation by remember { mutableStateOf<Conversation?>(null) }
     val chatViewModel = remember { ChatViewModel() }
@@ -42,72 +49,105 @@ fun App() {
     val conversationDetailViewModel = remember { ConversationDetailViewModel(conversationRepository) }
     
     ChatterTheme {
-        when (currentScreen) {
-            Screen.Chat -> {
-                ChatScreen(
-                    viewModel = chatViewModel,
-                    onApiManagementClick = { currentScreen = Screen.ApiManagement },
-                    onConversationListClick = { currentScreen = Screen.ConversationList }
-                )
-            }
-            Screen.ConversationList -> {
-                ConversationListScreen(
-                    viewModel = conversationListViewModel,
-                    onBackClick = { currentScreen = Screen.Chat },
-                    onConversationClick = { conversation ->
-                        selectedConversation = conversation
-                        currentScreen = Screen.ConversationDetail
-                    }
-                )
-            }
-            Screen.ConversationDetail -> {
-                selectedConversation?.let { conversation ->
-                    ConversationDetailScreen(
-                        conversation = conversation,
-                        viewModel = conversationDetailViewModel,
-                        onBackClick = { 
-                            currentScreen = Screen.ConversationList
-                            selectedConversation = null
+        Scaffold(
+            bottomBar = {
+                // 只在主要界面（对话列表和设置）显示底部导航栏
+                if (currentScreen == Screen.ConversationList || currentScreen == Screen.Settings) {
+                    BottomNavigationBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = { tab ->
+                            selectedTab = tab
+                            currentScreen = when (tab) {
+                                BottomNavTab.CONVERSATIONS -> Screen.ConversationList
+                                BottomNavTab.SETTINGS -> Screen.Settings
+                            }
                         }
                     )
                 }
-            }
-            Screen.ApiManagement -> {
-                ApiManagementScreen(
-                    viewModel = apiManagementViewModel,
-                    onBackClick = { 
-                        // 从API管理页面返回时刷新聊天页面的模型信息
-                        chatViewModel.refreshCurrentModel()
-                        currentScreen = Screen.Chat 
-                    },
-                    onCustomModelConfigClick = { currentScreen = Screen.CustomModelConfig },
-                    onAddCustomModelClick = { 
-                        // 重置为新建模式
-                        customModelConfigViewModel.resetToCreateMode()
-                        editingModelId = null
-                        currentScreen = Screen.CustomModelConfig 
-                    },
-                    onEditCustomModel = { customModel ->
-                        // 设置编辑模式
-                        customModelConfigViewModel.setEditMode(customModel.id)
-                        editingModelId = customModel.id
-                        currentScreen = Screen.CustomModelConfig
-                    },
-                    onDeleteCustomModel = { modelId ->
-                        apiManagementViewModel.deleteCustomModel(modelId)
+            },
+            modifier = Modifier.fillMaxSize()
+        ) { paddingValues ->
+            when (currentScreen) {
+                Screen.ConversationList -> {
+                    ConversationListScreen(
+                        viewModel = conversationListViewModel,
+                        onBackClick = { 
+                            // 对话列表是主界面，不需要返回操作
+                        },
+                        onConversationClick = { conversation ->
+                            selectedConversation = conversation
+                            currentScreen = Screen.Chat
+                        }
+                    )
+                }
+                Screen.Chat -> {
+                    selectedConversation?.let { conversation ->
+                        ConversationDetailScreen(
+                            conversation = conversation,
+                            viewModel = conversationDetailViewModel,
+                            onBackClick = { 
+                                currentScreen = Screen.ConversationList
+                                selectedConversation = null
+                            }
+                        )
                     }
-                )
-            }
-            Screen.CustomModelConfig -> {
-                CustomModelConfigScreen(
-                    viewModel = customModelConfigViewModel,
-                    onNavigateBack = { 
-                        // 从自定义模型配置页面返回时刷新API管理页面和聊天页面的模型信息
-                        apiManagementViewModel.refreshData()
-                        chatViewModel.refreshCurrentModel()
-                        currentScreen = Screen.ApiManagement 
+                }
+                Screen.Settings -> {
+                    SettingsScreen(
+                        onApiManagementClick = { currentScreen = Screen.ApiManagement },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Screen.ApiManagement -> {
+                    ApiManagementScreen(
+                        viewModel = apiManagementViewModel,
+                        onBackClick = { 
+                            // 从API管理页面返回时刷新聊天页面的模型信息
+                            chatViewModel.refreshCurrentModel()
+                            selectedTab = BottomNavTab.SETTINGS
+                            currentScreen = Screen.Settings 
+                        },
+                        onCustomModelConfigClick = { currentScreen = Screen.CustomModelConfig },
+                        onAddCustomModelClick = { 
+                            // 重置为新建模式
+                            customModelConfigViewModel.resetToCreateMode()
+                            editingModelId = null
+                            currentScreen = Screen.CustomModelConfig 
+                        },
+                        onEditCustomModel = { customModel ->
+                            // 设置编辑模式
+                            customModelConfigViewModel.setEditMode(customModel.id)
+                            editingModelId = customModel.id
+                            currentScreen = Screen.CustomModelConfig
+                        },
+                        onDeleteCustomModel = { modelId ->
+                            apiManagementViewModel.deleteCustomModel(modelId)
+                        }
+                    )
+                }
+                Screen.CustomModelConfig -> {
+                    CustomModelConfigScreen(
+                        viewModel = customModelConfigViewModel,
+                        onNavigateBack = { 
+                            // 从自定义模型配置页面返回时刷新API管理页面和聊天页面的模型信息
+                            apiManagementViewModel.refreshData()
+                            chatViewModel.refreshCurrentModel()
+                            currentScreen = Screen.ApiManagement 
+                        }
+                    )
+                }
+                Screen.ConversationDetail -> {
+                    selectedConversation?.let { conversation ->
+                        ConversationDetailScreen(
+                            conversation = conversation,
+                            viewModel = conversationDetailViewModel,
+                            onBackClick = { 
+                                currentScreen = Screen.ConversationList
+                                selectedConversation = null
+                            }
+                        )
                     }
-                )
+                }
             }
         }
     }
@@ -118,6 +158,7 @@ fun App() {
  */
 enum class Screen {
     Chat,
+    Settings,
     ConversationList,
     ApiManagement,
     CustomModelConfig,

@@ -1,0 +1,1 @@
+1. 不要使用gradlew build，仅对iOS和Android进行构建
