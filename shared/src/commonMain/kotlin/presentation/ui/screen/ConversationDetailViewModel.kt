@@ -31,13 +31,24 @@ class ConversationDetailViewModel(
      * 加载对话和消息
      */
     fun loadConversation(conversationId: String) {
-        if (currentConversationId == conversationId) return
+        // 如果是相同对话且已经加载完成，则不重复加载
+        if (currentConversationId == conversationId && 
+            _uiState.value.conversation != null && 
+            !_uiState.value.isLoading) {
+            return
+        }
+        
+        // 清理之前的状态
+        clearState()
         
         currentConversationId = conversationId
         _uiState.value = _uiState.value.copy(isLoading = true)
         
         viewModelScope.launch {
             try {
+                // 确保ConversationManager切换到当前对话
+                conversationManager.switchToConversation(conversationId)
+                
                 // 获取对话信息
                 val conversation = conversationRepository.getConversationById(conversationId)
                 if (conversation == null) {
@@ -74,8 +85,16 @@ class ConversationDetailViewModel(
     fun sendMessage(text: String) {
         val conversationId = currentConversationId ?: return
         
+        // 防止重复发送
+        if (_uiState.value.status is Status.Loading) {
+            return
+        }
+        
         viewModelScope.launch {
             try {
+                // 设置加载状态
+                _uiState.value = _uiState.value.copy(status = Status.Loading)
+                
                 // 确保ConversationManager切换到当前对话
                 conversationManager.switchToConversation(conversationId)
                 
@@ -134,7 +153,8 @@ class ConversationDetailViewModel(
                 _uiState.value = _uiState.value.copy(
                     messages = _uiState.value.messages.map { message ->
                         if (message.id == aiMessage.id) updatedAiMessage else message
-                    }
+                    },
+                    status = Status.Success("消息发送成功")
                 )
                 
                 // 保存AI消息到数据库
@@ -142,14 +162,33 @@ class ConversationDetailViewModel(
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "发送消息失败: ${e.message}"
+                    error = "发送消息失败: ${e.message}",
+                    status = Status.Error("发送消息失败: ${e.message}")
                 )
             }
         }
     }
     
     /**
-     * 清除错误状态
+     * 清理状态
+     * 重置ViewModel状态，防止状态混乱和内存泄漏
+     */
+    private fun clearState() {
+        _uiState.value = ConversationDetailUiState()
+        currentConversationId = null
+    }
+    
+    /**
+     * ViewModel销毁时清理状态
+     */
+    override fun onCleared() {
+        super.onCleared()
+        clearState()
+    }
+    
+    /**
+     * 清理错误状态
+     * 用于在导航时清理错误信息
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
@@ -157,6 +196,7 @@ class ConversationDetailViewModel(
     
     /**
      * 重置状态
+     * 用于在导航时重置加载状态
      */
     fun resetStatus() {
         _uiState.value = _uiState.value.copy(status = Status.Idle)

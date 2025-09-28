@@ -86,6 +86,9 @@ fun App() {
                             conversation = conversation,
                             viewModel = conversationDetailViewModel,
                             onBackClick = { 
+                                // 清理ViewModel状态，防止内存泄漏
+                                conversationDetailViewModel.clearError()
+                                conversationDetailViewModel.resetStatus()
                                 currentScreen = Screen.ConversationList
                                 selectedConversation = null
                             }

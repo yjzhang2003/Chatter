@@ -74,6 +74,11 @@ class ConversationManager(
     suspend fun switchToConversation(conversationId: String): Boolean {
         return mutex.withLock {
             try {
+                // 如果已经是当前对话，直接返回成功
+                if (_currentConversation.value?.id == conversationId) {
+                    return@withLock true
+                }
+                
                 val conversation = conversationRepository.getConversationById(conversationId)
                 if (conversation != null) {
                     _currentConversation.value = conversation
@@ -84,6 +89,9 @@ class ConversationManager(
                     false
                 }
             } catch (e: Exception) {
+                // 发生异常时清理状态
+                _currentConversation.value = null
+                _currentMessages.value = emptyList()
                 false
             }
         }

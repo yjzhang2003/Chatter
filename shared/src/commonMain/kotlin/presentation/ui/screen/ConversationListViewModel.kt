@@ -61,28 +61,68 @@ class ConversationListViewModel(
     }
 
     /**
-     * 创建新对话
-     */
-    fun createNewConversation(title: String? = null) {
-        viewModelScope.launch {
-            conversationRepository.createConversation(title)
+ * 创建新对话
+ */
+fun createNewConversation(title: String? = null) {
+    viewModelScope.launch {
+        try {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val conversation = conversationRepository.createConversation(title)
+            if (conversation == null) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "创建对话失败"
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                error = "创建对话失败: ${e.message}"
+            )
         }
     }
+}
 
     /**
-     * 删除对话
-     */
-    fun deleteConversation(conversationId: String) {
-        viewModelScope.launch {
-            conversationRepository.deleteConversation(conversationId)
+ * 删除对话
+ */
+fun deleteConversation(conversationId: String) {
+    viewModelScope.launch {
+        try {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val success = conversationRepository.deleteConversation(conversationId)
+            if (!success) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "删除对话失败"
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                error = "删除对话失败: ${e.message}"
+            )
         }
     }
+}
 
     /**
      * 清除错误信息
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+    
+    /**
+     * 清理状态
+     * 重置ViewModel状态，防止内存泄漏
+     */
+    fun clearState() {
+        _uiState.value = ConversationListUiState()
     }
 }
 

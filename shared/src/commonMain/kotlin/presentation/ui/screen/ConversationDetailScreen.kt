@@ -34,8 +34,8 @@ fun ConversationDetailScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // 初始化对话 - 每次进入时重新加载
-    LaunchedEffect(Unit) {
+    // 初始化对话 - 每次conversation变化时重新加载
+    LaunchedEffect(conversation.id) {
         viewModel.loadConversation(conversation.id)
     }
 

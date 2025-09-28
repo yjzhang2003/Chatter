@@ -76,6 +76,22 @@ class ChatViewModel : ViewModel() {
             )
         }
     }
+    
+    /**
+     * 清理状态
+     * 重置ViewModel状态，防止内存泄漏
+     */
+    fun clearState() {
+        _uiState.value = ChatUiState()
+    }
+    
+    /**
+     * ViewModel销毁时清理状态
+     */
+    override fun onCleared() {
+        super.onCleared()
+        clearState()
+    }
 
     /**
      * 更新最后一条机器人消息

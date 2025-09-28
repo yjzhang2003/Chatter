@@ -51,7 +51,13 @@ fun ConversationListScreen(
                     ) 
                 },
                 actions = {
-                    IconButton(onClick = { showCreateDialog = true }) {
+                    IconButton(
+                        onClick = { 
+                            if (!uiState.isLoading) {
+                                showCreateDialog = true 
+                            }
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "新建对话"
@@ -175,7 +181,10 @@ fun ConversationListScreen(
         CreateConversationDialog(
             onDismiss = { showCreateDialog = false },
             onConfirm = { title ->
-                viewModel.createNewConversation(title.takeIf { it.isNotBlank() })
+                // 防止重复点击
+                if (!uiState.isLoading) {
+                    viewModel.createNewConversation(title.takeIf { it.isNotBlank() })
+                }
                 showCreateDialog = false
             }
         )

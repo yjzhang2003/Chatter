@@ -6,6 +6,8 @@ import domain.model.AIModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 
 /**
@@ -16,6 +18,9 @@ class ConversationRepositoryImpl : ConversationRepository {
 
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     private val _messages = mutableMapOf<String, MutableList<ChatMessage>>()
+    
+    // 添加互斥锁来保证线程安全
+    private val mutex = Mutex()
 
     override fun getAllConversationsFlow(): Flow<List<Conversation>> {
         return _conversations.asStateFlow()
@@ -30,27 +35,29 @@ class ConversationRepositoryImpl : ConversationRepository {
     }
 
     override suspend fun createConversation(title: String?, aiModel: AIModel?): Conversation? {
-        return try {
-            val conversation = Conversation(
-                id = generateId(),
-                title = title ?: "新对话",
-                createdAt = Clock.System.now(),
-                updatedAt = Clock.System.now(),
-                messageCount = 0,
-                lastMessage = "",
-                aiModel = aiModel ?: AIModel.getDefault()
-            )
-            
-            val currentConversations = _conversations.value.toMutableList()
-            currentConversations.add(0, conversation)
-            _conversations.value = currentConversations
-            
-            // 初始化消息列表
-            _messages[conversation.id] = mutableListOf()
-            
-            conversation
-        } catch (e: Exception) {
-            null
+        return mutex.withLock {
+            try {
+                val conversation = Conversation(
+                    id = generateId(),
+                    title = title ?: "新对话",
+                    createdAt = Clock.System.now(),
+                    updatedAt = Clock.System.now(),
+                    messageCount = 0,
+                    lastMessage = "",
+                    aiModel = aiModel ?: AIModel.getDefault()
+                )
+                
+                val currentConversations = _conversations.value.toMutableList()
+                currentConversations.add(0, conversation)
+                _conversations.value = currentConversations
+                
+                // 初始化消息列表
+                _messages[conversation.id] = mutableListOf()
+                
+                conversation
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 
@@ -71,16 +78,18 @@ class ConversationRepositoryImpl : ConversationRepository {
     }
 
     override suspend fun deleteConversation(conversationId: String): Boolean {
-        return try {
-            val currentConversations = _conversations.value.toMutableList()
-            val removed = currentConversations.removeAll { it.id == conversationId }
-            if (removed) {
-                _conversations.value = currentConversations
-                _messages.remove(conversationId)
+        return mutex.withLock {
+            try {
+                val currentConversations = _conversations.value.toMutableList()
+                val removed = currentConversations.removeAll { it.id == conversationId }
+                if (removed) {
+                    _conversations.value = currentConversations
+                    _messages.remove(conversationId)
+                }
+                removed
+            } catch (e: Exception) {
+                false
             }
-            removed
-        } catch (e: Exception) {
-            false
         }
     }
 
@@ -94,16 +103,18 @@ class ConversationRepositoryImpl : ConversationRepository {
     }
 
     override suspend fun addMessage(message: ChatMessage): Boolean {
-        return try {
-            val conversationMessages = _messages.getOrPut(message.conversationId) { mutableListOf() }
-            conversationMessages.add(message)
-            
-            // 更新对话统计信息
-            updateConversationStats(message.conversationId)
-            
-            true
-        } catch (e: Exception) {
-            false
+        return mutex.withLock {
+            try {
+                val conversationMessages = _messages.getOrPut(message.conversationId) { mutableListOf() }
+                conversationMessages.add(message)
+                
+                // 更新对话统计信息
+                updateConversationStats(message.conversationId)
+                
+                true
+            } catch (e: Exception) {
+                false
+            }
         }
     }
 
@@ -189,6 +200,6 @@ class ConversationRepositoryImpl : ConversationRepository {
      * 生成唯一的对话ID
      */
     private fun generateId(): String {
-        return "conv_${Clock.System.now().toEpochMilliseconds()}_${(0..9999).random()}"
+        return "conv_${Clock.System.now().toEpochMilliseconds()}_${(0..999999).random()}"
     }
 }
