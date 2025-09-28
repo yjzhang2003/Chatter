@@ -34,8 +34,15 @@ import androidx.compose.ui.unit.sp
 import com.mikepenz.markdown.compose.Markdown
 import com.mikepenz.markdown.model.markdownColor
 import domain.model.Message
+import domain.model.ChatMessage
+import domain.model.MessageSender
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import presentation.theme.Gray700
 
+/**
+ * MessageBubble组件 - 支持Message类型
+ */
 @Composable
 inline fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
     val bubbleColor =
@@ -111,6 +118,104 @@ inline fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
                             ) {
                                 Text(
                                     text = message.time,
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp,
+                                    color = Gray700
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * MessageBubble组件 - 支持ChatMessage类型
+ */
+@Composable
+inline fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier) {
+    val bubbleColor =
+        if (message.sender == MessageSender.AI) MaterialTheme.colorScheme.surface
+        else MaterialTheme.colorScheme.secondaryContainer
+
+    var visibility by remember { mutableStateOf(false) }
+
+    LaunchedEffect(key1 = true) {
+        visibility = true
+    }
+    AnimatedVisibility(
+        visible = visibility,
+        enter = slideInHorizontally()
+                + expandHorizontally(expandFrom = Alignment.Start)
+                + scaleIn(transformOrigin = TransformOrigin(0.5f, 0f))
+                + fadeIn(initialAlpha = 0.3f),
+    ) {
+        Box(
+            contentAlignment = if (message.sender == MessageSender.USER) Alignment.CenterEnd else Alignment.CenterStart,
+            modifier = modifier
+                .padding(
+                    start = if (message.sender == MessageSender.AI) 0.dp else 50.dp,
+                    end = if (message.sender == MessageSender.AI) 50.dp else 0.dp,
+                )
+                .fillMaxWidth()
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .clip(
+                                RoundedCornerShape(
+                                    bottomStart = 20.dp,
+                                    bottomEnd = 20.dp,
+                                    topEnd = if (message.sender == MessageSender.AI) 20.dp else 2.dp,
+                                    topStart = if (message.sender == MessageSender.AI) 2.dp else 20.dp
+                                )
+                            )
+                            .background(color = bubbleColor)
+                            .padding(vertical = 5.dp, horizontal = 16.dp),
+                    ) {
+                        Column {
+                            Text(
+                                text = when (message.sender) {
+                                    MessageSender.USER -> "You"
+                                    MessageSender.AI -> "ChatGemini"
+                                },
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Left,
+                                color = if (message.sender == MessageSender.AI) MaterialTheme.colorScheme.secondary
+                                else MaterialTheme.colorScheme.primary,
+                            )
+                            if (message.sender == MessageSender.AI && message.isLoading) {
+                                LoadingAnimation(
+                                    circleSize = 8.dp,
+                                    spaceBetween = 5.dp,
+                                    travelDistance = 10.dp,
+                                    circleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(top = 14.dp)
+                                )
+                            } else {
+                                Markdown(
+                                    content = message.content,
+                                    colors = markdownColor(
+                                        text = LocalContentColor.current,
+                                        codeText = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    modifier = Modifier.wrapContentWidth()
+                                )
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.End,
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text(
+                                    text = message.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).let { datetime ->
+                                        val hour = if (datetime.hour < 10) "0${datetime.hour}" else datetime.hour
+                                        val minute = if (datetime.minute < 10) "0${datetime.minute}" else datetime.minute
+                                        "${hour}:${minute}"
+                                    },
                                     textAlign = TextAlign.End,
                                     fontSize = 12.sp,
                                     color = Gray700

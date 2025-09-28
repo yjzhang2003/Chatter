@@ -37,7 +37,8 @@ import presentation.ui.extension.showSnackBar
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel = ChatViewModel(),
-    onApiManagementClick: () -> Unit = {}
+    onApiManagementClick: () -> Unit = {},
+    onConversationListClick: () -> Unit = {}
 ) {
     val chatUiState = viewModel.uiState
     val focusManager = LocalFocusManager.current
@@ -55,6 +56,7 @@ fun ChatScreen(
         topBar = {
             CustomAppBar(
                 onActionClick = onApiManagementClick,
+                onConversationListClick = onConversationListClick,
                 currentModel = chatUiState.value.currentModel
             )
         },

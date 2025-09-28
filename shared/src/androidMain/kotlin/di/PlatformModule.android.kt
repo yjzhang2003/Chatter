@@ -3,6 +3,7 @@ package di
 import android.content.Context
 import data.local.PreferencesManager
 import data.local.PreferencesManagerImpl
+import data.database.DatabaseDriverFactory
 
 /**
  * Android平台的依赖注入模块
@@ -26,5 +27,14 @@ actual object PlatformModule {
         val context = applicationContext 
             ?: throw IllegalStateException("PlatformModule未初始化，请在Application中调用initialize()")
         return PreferencesManagerImpl(context)
+    }
+    
+    /**
+     * 提供DatabaseDriverFactory实例
+     */
+    actual fun provideDatabaseDriverFactory(): DatabaseDriverFactory {
+        val context = applicationContext 
+            ?: throw IllegalStateException("PlatformModule未初始化，请在Application中调用initialize()")
+        return DatabaseDriverFactory(context)
     }
 }
