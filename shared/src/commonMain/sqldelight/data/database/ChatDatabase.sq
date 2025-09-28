@@ -1,0 +1,120 @@
+-- 对话表
+CREATE TABLE conversation (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    message_count INTEGER NOT NULL DEFAULT 0,
+    last_message TEXT NOT NULL DEFAULT '',
+    ai_model TEXT NOT NULL
+);
+
+-- 聊天消息表
+CREATE TABLE chat_message (
+    id TEXT NOT NULL PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    images TEXT NOT NULL DEFAULT '', -- JSON数组字符串存储图片列表
+    is_loading INTEGER NOT NULL DEFAULT 0, -- SQLite使用INTEGER存储布尔值
+    ai_model TEXT,
+    token_count INTEGER,
+    processing_time INTEGER,
+    temperature REAL,
+    max_tokens INTEGER,
+    error_message TEXT,
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE CASCADE
+);
+
+-- 创建索引以提高查询性能
+CREATE INDEX idx_conversation_updated_at ON conversation(updated_at DESC);
+CREATE INDEX idx_chat_message_conversation_id ON chat_message(conversation_id);
+CREATE INDEX idx_chat_message_created_at ON chat_message(created_at DESC);
+
+-- 对话相关查询
+getAllConversations:
+SELECT * FROM conversation ORDER BY updated_at DESC;
+
+getConversationById:
+SELECT * FROM conversation WHERE id = ?;
+
+insertConversation:
+INSERT INTO conversation (id, title, created_at, updated_at, message_count, last_message, ai_model)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateConversation:
+UPDATE conversation 
+SET title = ?, updated_at = ?, message_count = ?, last_message = ?, ai_model = ?
+WHERE id = ?;
+
+deleteConversation:
+DELETE FROM conversation WHERE id = ?;
+
+getConversationCount:
+SELECT COUNT(*) FROM conversation;
+
+updateConversationStats:
+UPDATE conversation 
+SET message_count = ?, last_message = ?, updated_at = ?
+WHERE id = ?;
+
+searchConversations:
+SELECT * FROM conversation 
+WHERE title LIKE '%' || ? || '%' OR last_message LIKE '%' || ? || '%'
+ORDER BY updated_at DESC;
+
+-- 消息相关查询
+getMessagesByConversationId:
+SELECT * FROM chat_message 
+WHERE conversation_id = ? 
+ORDER BY created_at ASC;
+
+getMessageById:
+SELECT * FROM chat_message WHERE id = ?;
+
+insertMessage:
+INSERT INTO chat_message (
+    id, conversation_id, content, sender, created_at, images, 
+    is_loading, ai_model, token_count, processing_time, 
+    temperature, max_tokens, error_message
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateMessage:
+UPDATE chat_message 
+SET content = ?, is_loading = ?, token_count = ?, processing_time = ?, 
+    temperature = ?, max_tokens = ?, error_message = ?
+WHERE id = ?;
+
+deleteMessage:
+DELETE FROM chat_message WHERE id = ?;
+
+deleteMessagesByConversationId:
+DELETE FROM chat_message WHERE conversation_id = ?;
+
+getMessageCountByConversationId:
+SELECT COUNT(*) FROM chat_message WHERE conversation_id = ?;
+
+getLastMessageByConversationId:
+SELECT * FROM chat_message 
+WHERE conversation_id = ? 
+ORDER BY created_at DESC 
+LIMIT 1;
+
+getContextMessages:
+SELECT * FROM chat_message 
+WHERE conversation_id = ? 
+ORDER BY created_at DESC 
+LIMIT ?;
+
+searchMessages:
+SELECT * FROM chat_message 
+WHERE content LIKE '%' || ? || '%' 
+AND (?1 IS NULL OR conversation_id = ?2)
+ORDER BY created_at DESC;
+
+clearAllMessages:
+DELETE FROM chat_message;
+
+clearAllConversations:
+DELETE FROM conversation;

@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.21"
     id("com.android.library")
     id("org.jetbrains.compose")
+    id("app.cash.sqldelight") version "2.0.1"
 }
 
 kotlin {
@@ -29,6 +30,7 @@ kotlin {
             dependencies {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
+                implementation(compose.material)
                 implementation(compose.material3)
                 implementation(compose.materialIconsExtended)
                 @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
@@ -42,12 +44,21 @@ kotlin {
                 implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
                 implementation("io.ktor:ktor-client-logging:$ktorVersion")
-                implementation("io.github.team-preat:peekaboo-ui:0.3.0")
-                implementation("io.github.team-preat:peekaboo-image-picker:0.3.0")
                 implementation("com.mikepenz:multiplatform-markdown-renderer:0.10.0")
+                implementation("app.cash.sqldelight:runtime:2.0.1")
+                implementation("app.cash.sqldelight:coroutines-extensions:2.0.1")
 
             }
         }
+        
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
+                implementation("app.cash.sqldelight:sqlite-driver:2.0.1")
+            }
+        }
+        
         val androidMain by getting {
             dependencies {
                 api("androidx.activity:activity-compose:1.8.2")
@@ -55,6 +66,7 @@ kotlin {
                 api("androidx.core:core-ktx:1.12.0")
                 implementation("io.ktor:ktor-client-android:$ktorVersion")
                 implementation("com.google.ai.client.generativeai:generativeai:0.1.1")
+                implementation("app.cash.sqldelight:android-driver:2.0.1")
             }
         }
         val iosX64Main by getting
@@ -67,6 +79,7 @@ kotlin {
             iosSimulatorArm64Main.dependsOn(this)
             dependencies {
                 implementation("io.ktor:ktor-client-darwin:$ktorVersion")
+                implementation("app.cash.sqldelight:native-driver:2.0.1")
             }
         }
         val desktopMain by getting {
@@ -74,6 +87,7 @@ kotlin {
                 implementation(compose.desktop.common)
                 implementation("io.ktor:ktor-client-cio:2.2.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
+                implementation("app.cash.sqldelight:sqlite-driver:2.0.1")
             }
         }
     }
@@ -98,6 +112,11 @@ android {
         jvmToolchain(17)
     }
 }
-dependencies {
-    implementation("com.google.ai.client.generativeai:generativeai:0.1.1")
+
+sqldelight {
+    databases {
+        create("ChatDatabase") {
+            packageName.set("data.database")
+        }
+    }
 }

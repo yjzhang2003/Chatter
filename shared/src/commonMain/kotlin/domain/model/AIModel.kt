@@ -39,6 +39,13 @@ enum class AIModel(
         }
 
         /**
+         * 根据字符串获取AI模型（用于数据库存储）
+         */
+        fun fromString(name: String): AIModel {
+            return values().find { it.name == name } ?: getDefault()
+        }
+
+        /**
          * 获取默认模型
          */
         fun getDefault(): AIModel = GEMINI_PRO
