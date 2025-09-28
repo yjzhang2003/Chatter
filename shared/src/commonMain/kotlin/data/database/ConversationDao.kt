@@ -28,7 +28,8 @@ class ConversationDao(private val driver: SqlDriver) {
                     updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
                     messageCount = row.message_count.toInt(),
                     lastMessage = row.last_message ?: "",
-                    aiModel = AIModel.fromString(row.ai_model)
+                    aiModel = AIModel.fromString(row.ai_model),
+                    agentId = row.agent_id
                 )
             }
         } catch (e: Exception) {
@@ -52,7 +53,8 @@ class ConversationDao(private val driver: SqlDriver) {
                     updatedAt = Instant.fromEpochMilliseconds(it.updated_at),
                     messageCount = it.message_count.toInt(),
                     lastMessage = it.last_message ?: "",
-                    aiModel = AIModel.fromString(it.ai_model)
+                    aiModel = AIModel.fromString(it.ai_model),
+                    agentId = it.agent_id
                 )
             }
         } catch (e: Exception) {
@@ -74,7 +76,8 @@ class ConversationDao(private val driver: SqlDriver) {
                 updated_at = conversation.updatedAt.toEpochMilliseconds(),
                 message_count = conversation.messageCount.toLong(),
                 last_message = conversation.lastMessage,
-                ai_model = conversation.aiModel.name
+                ai_model = conversation.aiModel.name,
+                agent_id = conversation.agentId
             )
             true
         } catch (e: Exception) {
@@ -95,6 +98,7 @@ class ConversationDao(private val driver: SqlDriver) {
                 message_count = conversation.messageCount.toLong(),
                 last_message = conversation.lastMessage,
                 ai_model = conversation.aiModel.name,
+                agent_id = conversation.agentId,
                 id = conversation.id
             )
             true
@@ -169,7 +173,8 @@ class ConversationDao(private val driver: SqlDriver) {
                     updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
                     messageCount = row.message_count.toInt(),
                     lastMessage = row.last_message ?: "",
-                    aiModel = AIModel.fromString(row.ai_model)
+                    aiModel = AIModel.fromString(row.ai_model),
+                    agentId = row.agent_id
                 )
             }
         } catch (e: Exception) {

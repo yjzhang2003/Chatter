@@ -6,7 +6,21 @@ CREATE TABLE conversation (
     updated_at INTEGER NOT NULL,
     message_count INTEGER NOT NULL DEFAULT 0,
     last_message TEXT NOT NULL DEFAULT '',
-    ai_model TEXT NOT NULL
+    ai_model TEXT NOT NULL,
+    agent_id TEXT
+);
+
+-- 智能体表
+CREATE TABLE agent (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    system_prompt TEXT NOT NULL,
+    avatar TEXT NOT NULL DEFAULT '',
+    is_preset INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    usage_count INTEGER NOT NULL DEFAULT 0
 );
 
 -- 聊天消息表
@@ -29,6 +43,9 @@ CREATE TABLE chat_message (
 
 -- 创建索引以提高查询性能
 CREATE INDEX idx_conversation_updated_at ON conversation(updated_at DESC);
+CREATE INDEX idx_conversation_agent_id ON conversation(agent_id);
+CREATE INDEX idx_agent_is_preset ON agent(is_preset);
+CREATE INDEX idx_agent_usage_count ON agent(usage_count DESC);
 CREATE INDEX idx_chat_message_conversation_id ON chat_message(conversation_id);
 CREATE INDEX idx_chat_message_created_at ON chat_message(created_at DESC);
 
@@ -40,12 +57,12 @@ getConversationById:
 SELECT * FROM conversation WHERE id = ?;
 
 insertConversation:
-INSERT INTO conversation (id, title, created_at, updated_at, message_count, last_message, ai_model)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO conversation (id, title, created_at, updated_at, message_count, last_message, ai_model, agent_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 updateConversation:
 UPDATE conversation 
-SET title = ?, updated_at = ?, message_count = ?, last_message = ?, ai_model = ?
+SET title = ?, updated_at = ?, message_count = ?, last_message = ?, ai_model = ?, agent_id = ?
 WHERE id = ?;
 
 deleteConversation:
@@ -63,6 +80,41 @@ searchConversations:
 SELECT * FROM conversation 
 WHERE title LIKE '%' || ? || '%' OR last_message LIKE '%' || ? || '%'
 ORDER BY updated_at DESC;
+
+-- 智能体相关查询
+getAllAgents:
+SELECT * FROM agent ORDER BY is_preset DESC, usage_count DESC, name ASC;
+
+getAgentById:
+SELECT * FROM agent WHERE id = ?;
+
+insertAgent:
+INSERT INTO agent (id, name, description, system_prompt, avatar, is_preset, created_at, updated_at, usage_count)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateAgent:
+UPDATE agent 
+SET name = ?, description = ?, system_prompt = ?, avatar = ?, updated_at = ?
+WHERE id = ?;
+
+deleteAgent:
+DELETE FROM agent WHERE id = ? AND is_preset = 0;
+
+getPresetAgents:
+SELECT * FROM agent WHERE is_preset = 1 ORDER BY name ASC;
+
+getCustomAgents:
+SELECT * FROM agent WHERE is_preset = 0 ORDER BY usage_count DESC, name ASC;
+
+incrementAgentUsage:
+UPDATE agent 
+SET usage_count = usage_count + 1, updated_at = ?
+WHERE id = ?;
+
+searchAgents:
+SELECT * FROM agent 
+WHERE name LIKE '%' || ? || '%' OR description LIKE '%' || ? || '%'
+ORDER BY is_preset DESC, usage_count DESC, name ASC;
 
 -- 消息相关查询
 getMessagesByConversationId:

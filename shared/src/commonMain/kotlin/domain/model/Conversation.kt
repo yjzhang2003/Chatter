@@ -16,7 +16,8 @@ data class Conversation(
     val updatedAt: Instant = Clock.System.now(),
     val messageCount: Int = 0,
     val lastMessage: String = "",
-    val aiModel: AIModel = AIModel.getDefault()
+    val aiModel: AIModel = AIModel.getDefault(),
+    val agentId: String? = null
 ) {
     /**
      * 生成对话的显示标题
@@ -71,12 +72,14 @@ data class Conversation(
         fun create(
             id: String = generateId(),
             title: String = "",
-            aiModel: AIModel = AIModel.getDefault()
+            aiModel: AIModel = AIModel.getDefault(),
+            agentId: String? = null
         ): Conversation {
             return Conversation(
                 id = id,
                 title = title,
-                aiModel = aiModel
+                aiModel = aiModel,
+                agentId = agentId
             )
         }
 
