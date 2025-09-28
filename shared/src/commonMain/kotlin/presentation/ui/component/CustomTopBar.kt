@@ -56,7 +56,7 @@ fun CustomAppBar(
             title = {
                 Column {
                     Text(
-                        text = "ChatGemini",
+                        text = "Chatter",
                         style = TextStyle(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,

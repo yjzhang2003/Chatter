@@ -23,7 +23,7 @@ actual class DatabaseDriverFactory {
      */
     private fun getDatabasePath(): String {
         val userHome = System.getProperty("user.home")
-        val configDir = File(userHome, ".config/ChatGemini")
+        val configDir = File(userHome, ".config/Chatter")
         if (!configDir.exists()) {
             configDir.mkdirs()
         }

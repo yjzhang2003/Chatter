@@ -1,7 +1,7 @@
 package presentation
 
 import androidx.compose.runtime.*
-import presentation.theme.ChatGeminiTheme
+import presentation.theme.ChatterTheme
 import presentation.ui.screen.ChatScreen
 import presentation.ui.screen.ApiManagementScreen
 import presentation.ui.screen.CustomModelConfigScreen
@@ -41,7 +41,7 @@ fun App() {
     val conversationListViewModel = remember { ConversationListViewModel(conversationRepository) }
     val conversationDetailViewModel = remember { ConversationDetailViewModel(conversationRepository) }
     
-    ChatGeminiTheme {
+    ChatterTheme {
         when (currentScreen) {
             Screen.Chat -> {
                 ChatScreen(

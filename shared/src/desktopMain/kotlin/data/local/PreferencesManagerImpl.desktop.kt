@@ -26,7 +26,7 @@ actual class PreferencesManagerImpl : PreferencesManager {
     
     private val prefsFile: File by lazy {
         val userHome = System.getProperty("user.home")
-        val configDir = File(userHome, ".config/ChatGemini")
+        val configDir = File(userHome, ".config/Chatter")
         if (!configDir.exists()) {
             configDir.mkdirs()
         }
@@ -56,7 +56,7 @@ actual class PreferencesManagerImpl : PreferencesManager {
     private fun saveProperties(properties: Properties) {
         try {
             FileOutputStream(prefsFile).use { output ->
-                properties.store(output, "ChatGemini Preferences")
+                properties.store(output, "Chatter Preferences")
             }
         } catch (e: Exception) {
             e.printStackTrace()

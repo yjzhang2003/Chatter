@@ -49,7 +49,7 @@ private val typography = Typography(
 )
 
 @Composable
-internal fun ChatGeminiTheme(content: @Composable () -> Unit) {
+internal fun ChatterTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (isSystemInDarkTheme()) DarkColorScheme else LightColorScheme,
         typography = typography,

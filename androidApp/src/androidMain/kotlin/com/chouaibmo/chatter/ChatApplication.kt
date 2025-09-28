@@ -1,4 +1,4 @@
-package com.chouaibmo.chatgemini
+package com.chouaibmo.chatter
 
 import android.app.Application
 import di.PlatformModule

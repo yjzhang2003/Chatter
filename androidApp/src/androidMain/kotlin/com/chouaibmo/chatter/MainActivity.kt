@@ -1,4 +1,4 @@
-package com.chouaibmo.chatgemini
+package com.chouaibmo.chatter
 
 import android.os.Bundle
 import androidx.activity.compose.setContent

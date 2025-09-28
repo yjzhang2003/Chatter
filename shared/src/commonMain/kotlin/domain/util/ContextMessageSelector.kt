@@ -50,13 +50,13 @@ object ContextMessageSelector {
         val remainingTokens = availableTokens - currentPromptTokens
         
         // 添加调试日志
-        println("Debug: ContextMessageSelector - 模型: $aiModel, 总token限制: $modelTokenLimit")
-        println("Debug: ContextMessageSelector - 可用token: $availableTokens, 当前提示token: $currentPromptTokens, 剩余token: $remainingTokens")
-        println("Debug: ContextMessageSelector - 输入消息数量: ${messages.size}")
+        // println("Debug: ContextMessageSelector - 模型: $aiModel, 总token限制: $modelTokenLimit")
+        // println("Debug: ContextMessageSelector - 可用token: $availableTokens, 当前提示token: $currentPromptTokens, 剩余token: $remainingTokens")
+        // println("Debug: ContextMessageSelector - 输入消息数量: ${messages.size}")
         
         if (remainingTokens <= 0) {
             // 如果当前提示已经占用了所有可用token，返回空上下文
-            println("Debug: ContextMessageSelector - 剩余token不足，返回空上下文")
+            // println("Debug: ContextMessageSelector - 剩余token不足，返回空上下文")
             return emptyList()
         }
         
@@ -72,7 +72,7 @@ object ContextMessageSelector {
             if (usedTokens + messageTokens <= remainingTokens) {
                 selectedMessages.add(0, message) // 添加到列表开头以保持时间顺序
                 usedTokens += messageTokens
-                println("Debug: ContextMessageSelector - 添加消息: ${message.sender} - ${message.content.take(50)}...")
+                // println("Debug: ContextMessageSelector - 添加消息: ${message.sender} - ${message.content.take(50)}...")
             } else {
                 // 如果添加会超出限制，尝试截断消息内容
                 val availableForThisMessage = remainingTokens - usedTokens
@@ -81,14 +81,14 @@ object ContextMessageSelector {
                     if (truncatedContent.isNotEmpty()) {
                         val truncatedMessage = message.copy(content = truncatedContent)
                         selectedMessages.add(0, truncatedMessage)
-                        println("Debug: ContextMessageSelector - 添加截断消息: ${message.sender} - ${truncatedContent.take(50)}...")
+                        // println("Debug: ContextMessageSelector - 添加截断消息: ${message.sender} - ${truncatedContent.take(50)}...")
                     }
                 }
                 break // 无法添加更多消息
             }
         }
         
-        println("Debug: ContextMessageSelector - 最终选择了 ${selectedMessages.size} 条消息，使用token: $usedTokens")
+        // println("Debug: ContextMessageSelector - 最终选择了 ${selectedMessages.size} 条消息，使用token: $usedTokens")
         return selectedMessages
     }
     
