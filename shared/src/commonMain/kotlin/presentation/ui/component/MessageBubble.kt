@@ -181,6 +181,7 @@ inline fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier) {
                                 text = when (message.sender) {
                                     MessageSender.USER -> "You"
                                     MessageSender.AI -> "Chatter"
+                                    MessageSender.SYSTEM -> "System"
                                 },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,

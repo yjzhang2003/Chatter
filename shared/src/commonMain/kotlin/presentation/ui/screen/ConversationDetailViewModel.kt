@@ -142,7 +142,7 @@ class ConversationDetailViewModel(
                         val systemMessage = ChatMessage.create(
                             conversationId = conversationId,
                             content = agentInfo.systemPrompt,
-                            sender = MessageSender.AI
+                            sender = MessageSender.SYSTEM
                         )
                         contextMessages.add(systemMessage)
                         println("Debug: 添加智能体系统提示: ${agentInfo.name} - ${agentInfo.systemPrompt.take(50)}...")

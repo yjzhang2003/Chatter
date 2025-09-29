@@ -122,6 +122,9 @@ class CustomAIService(
                 domain.model.MessageSender.AI -> {
                     messages.add(OpenAIMessage(role = "assistant", content = JsonPrimitive(message.content)))
                 }
+                domain.model.MessageSender.SYSTEM -> {
+                    messages.add(OpenAIMessage(role = "system", content = JsonPrimitive(message.content)))
+                }
             }
         }
         
@@ -228,6 +231,7 @@ class CustomAIService(
             val role = when (message.sender) {
                 domain.model.MessageSender.USER -> "user"
                 domain.model.MessageSender.AI -> "model"
+                domain.model.MessageSender.SYSTEM -> "user" // Gemini不支持system角色，将其作为user消息处理
             }
             
             val parts = listOf(Json.parseToJsonElement("""{"text": "${message.content}"}""") as JsonObject)

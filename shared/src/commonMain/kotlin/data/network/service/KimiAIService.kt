@@ -82,6 +82,9 @@ class KimiAIService : AIService {
                     domain.model.MessageSender.AI -> {
                         messages.add(KimiMessage(role = "assistant", content = message.content))
                     }
+                    domain.model.MessageSender.SYSTEM -> {
+                        messages.add(KimiMessage(role = "system", content = message.content))
+                    }
                 }
             }
             

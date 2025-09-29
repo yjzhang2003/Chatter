@@ -143,11 +143,13 @@ data class ChatMessage(
 
 /**
  * 消息发送者枚举
+ * 定义消息的发送者类型
  */
 @Serializable
 enum class MessageSender {
-    USER,  // 用户
-    AI     // AI助手
+    USER,   // 用户
+    AI,     // AI助手
+    SYSTEM  // 系统消息（如智能体的系统提示词）
 }
 
 /**

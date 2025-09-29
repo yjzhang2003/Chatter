@@ -79,6 +79,7 @@ class GeminiService {
                 when (message.sender) {
                     domain.model.MessageSender.USER -> addText("用户: ${message.content}")
                     domain.model.MessageSender.AI -> addText("助手: ${message.content}")
+                    domain.model.MessageSender.SYSTEM -> addText("系统: ${message.content}")
                 }
             }
             // 添加当前用户输入

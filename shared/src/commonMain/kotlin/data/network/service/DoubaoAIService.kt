@@ -82,6 +82,9 @@ class DoubaoAIService : AIService {
                     domain.model.MessageSender.AI -> {
                         messages.add(DoubaoMessage(role = "assistant", content = message.content))
                     }
+                    domain.model.MessageSender.SYSTEM -> {
+                        messages.add(DoubaoMessage(role = "system", content = message.content))
+                    }
                 }
             }
             
