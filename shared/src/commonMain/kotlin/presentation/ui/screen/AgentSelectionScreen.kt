@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,8 +30,14 @@ fun AgentSelectionScreen(
     currentAgentId: String?,
     onBackClick: () -> Unit,
     onAgentSelected: (Agent) -> Unit,
-    onCreateAgentClick: () -> Unit = {}
+    onCreateAgentClick: () -> Unit = {},
+    onEditAgentClick: (Agent) -> Unit = {},
+    onDeleteAgentClick: (Agent) -> Unit = {}
 ) {
+    // 删除确认对话框状态
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var agentToDelete by remember { mutableStateOf<Agent?>(null) }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -84,7 +92,12 @@ fun AgentSelectionScreen(
                     AgentCard(
                         agent = agent,
                         isSelected = agent.id == currentAgentId,
-                        onClick = { onAgentSelected(agent) }
+                        onClick = { onAgentSelected(agent) },
+                        onEditClick = { onEditAgentClick(agent) },
+                        onDeleteClick = { 
+                            agentToDelete = agent
+                            showDeleteDialog = true
+                        }
                     )
                 }
             }
@@ -104,7 +117,12 @@ fun AgentSelectionScreen(
                     AgentCard(
                         agent = agent,
                         isSelected = agent.id == currentAgentId,
-                        onClick = { onAgentSelected(agent) }
+                        onClick = { onAgentSelected(agent) },
+                        onEditClick = { onEditAgentClick(agent) },
+                        onDeleteClick = { 
+                            agentToDelete = agent
+                            showDeleteDialog = true
+                        }
                     )
                 }
             }
@@ -144,6 +162,45 @@ fun AgentSelectionScreen(
             }
         }
     }
+    
+    // 删除确认对话框
+    if (showDeleteDialog && agentToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                agentToDelete = null
+            },
+            title = {
+                Text("删除智能体")
+            },
+            text = {
+                Text("确定要删除智能体 \"${agentToDelete!!.name}\" 吗？此操作不可撤销。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        agentToDelete?.let { agent ->
+                            onDeleteAgentClick(agent)
+                        }
+                        showDeleteDialog = false
+                        agentToDelete = null
+                    }
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        agentToDelete = null
+                    }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
 }
 
 /**
@@ -155,7 +212,9 @@ fun AgentSelectionScreen(
 private fun AgentCard(
     agent: Agent,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
     Card(
         onClick = onClick,
@@ -216,6 +275,35 @@ private fun AgentCard(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                    }
+                }
+                
+                // 编辑和删除按钮（仅对自定义智能体显示）
+                if (agent.isCustom()) {
+                    Row {
+                        IconButton(
+                            onClick = onEditClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "编辑智能体",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        
+                        IconButton(
+                            onClick = onDeleteClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "删除智能体",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

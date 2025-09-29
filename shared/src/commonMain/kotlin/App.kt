@@ -161,6 +161,15 @@ fun App() {
                             selectedAgent = null
                             isEditingAgent = false
                             currentScreen = Screen.AgentEdit
+                        },
+                        onEditAgentClick = { agent ->
+                            selectedAgent = agent
+                            isEditingAgent = true
+                            currentScreen = Screen.AgentEdit
+                        },
+                        onDeleteAgentClick = { agent ->
+                            // 删除智能体
+                            agentViewModel.deleteAgent(agent.id)
                         }
                     )
                 }
