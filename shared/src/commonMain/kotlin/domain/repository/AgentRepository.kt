@@ -55,13 +55,6 @@ interface AgentRepository {
     suspend fun getCustomAgents(): List<Agent>
     
     /**
-     * 增加智能体使用次数
-     * @param id 智能体ID
-     * @return 更新是否成功
-     */
-    suspend fun incrementAgentUsage(id: String): Boolean
-    
-    /**
      * 搜索智能体
      * @param query 搜索关键词
      * @return 匹配的智能体列表

@@ -218,28 +218,6 @@ private fun AgentCard(
                         )
                     }
                 }
-                
-                if (agent.usageCount > 0) {
-                    Surface(
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = "${agent.usageCount}次",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
             }
             
             if (isSelected) {

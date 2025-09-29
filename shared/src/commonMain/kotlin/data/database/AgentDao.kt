@@ -28,8 +28,7 @@ class AgentDao(private val driver: SqlDriver) {
                     avatar = row.avatar,
                     isPreset = row.is_preset == 1L,
                     createdAt = Instant.fromEpochMilliseconds(row.created_at),
-                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
-                    usageCount = row.usage_count.toInt()
+                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at)
                 )
             }
         } catch (e: Exception) {
@@ -54,8 +53,7 @@ class AgentDao(private val driver: SqlDriver) {
                     avatar = it.avatar,
                     isPreset = it.is_preset == 1L,
                     createdAt = Instant.fromEpochMilliseconds(it.created_at),
-                    updatedAt = Instant.fromEpochMilliseconds(it.updated_at),
-                    usageCount = it.usage_count.toInt()
+                    updatedAt = Instant.fromEpochMilliseconds(it.updated_at)
                 )
             }
         } catch (e: Exception) {
@@ -78,8 +76,7 @@ class AgentDao(private val driver: SqlDriver) {
                 avatar = agent.avatar,
                 is_preset = if (agent.isPreset) 1L else 0L,
                 created_at = agent.createdAt.toEpochMilliseconds(),
-                updated_at = agent.updatedAt.toEpochMilliseconds(),
-                usage_count = agent.usageCount.toLong()
+                updated_at = agent.updatedAt.toEpochMilliseconds()
             )
             true
         } catch (e: Exception) {
@@ -137,8 +134,7 @@ class AgentDao(private val driver: SqlDriver) {
                     avatar = row.avatar,
                     isPreset = row.is_preset == 1L,
                     createdAt = Instant.fromEpochMilliseconds(row.created_at),
-                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
-                    usageCount = row.usage_count.toInt()
+                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at)
                 )
             }
         } catch (e: Exception) {
@@ -161,29 +157,11 @@ class AgentDao(private val driver: SqlDriver) {
                     avatar = row.avatar,
                     isPreset = row.is_preset == 1L,
                     createdAt = Instant.fromEpochMilliseconds(row.created_at),
-                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
-                    usageCount = row.usage_count.toInt()
+                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at)
                 )
             }
         } catch (e: Exception) {
             emptyList()
-        }
-    }
-    
-    /**
-     * 增加智能体使用次数
-     * @param id 智能体ID
-     * @return 更新是否成功
-     */
-    suspend fun incrementAgentUsage(id: String): Boolean {
-        return try {
-            database.chatDatabaseQueries.incrementAgentUsage(
-                updated_at = Clock.System.now().toEpochMilliseconds(),
-                id = id
-            )
-            true
-        } catch (e: Exception) {
-            false
         }
     }
     
@@ -203,8 +181,7 @@ class AgentDao(private val driver: SqlDriver) {
                     avatar = row.avatar,
                     isPreset = row.is_preset == 1L,
                     createdAt = Instant.fromEpochMilliseconds(row.created_at),
-                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at),
-                    usageCount = row.usage_count.toInt()
+                    updatedAt = Instant.fromEpochMilliseconds(row.updated_at)
                 )
             }
         } catch (e: Exception) {

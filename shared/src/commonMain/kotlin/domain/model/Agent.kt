@@ -17,8 +17,7 @@ data class Agent(
     val avatar: String = "",
     val isPreset: Boolean = false,
     val createdAt: Instant = Clock.System.now(),
-    val updatedAt: Instant = Clock.System.now(),
-    val usageCount: Int = 0
+    val updatedAt: Instant = Clock.System.now()
 ) {
     /**
      * 获取智能体的显示名称
@@ -47,16 +46,6 @@ data class Agent(
      * 检查智能体是否为自定义智能体
      */
     fun isCustom(): Boolean = !isPreset
-
-    /**
-     * 更新使用次数
-     */
-    fun incrementUsage(): Agent {
-        return copy(
-            usageCount = usageCount + 1,
-            updatedAt = Clock.System.now()
-        )
-    }
 
     /**
      * 更新智能体信息

@@ -165,19 +165,6 @@ class AgentViewModel(
     /**
      * 增加智能体使用次数
      */
-    fun incrementAgentUsage(agentId: String) {
-        viewModelScope.launch {
-            try {
-                agentRepository.incrementAgentUsage(agentId)
-                // 静默更新，不显示加载状态
-                val agents = agentRepository.getAllAgents()
-                _uiState.value = _uiState.value.copy(agents = agents)
-            } catch (e: Exception) {
-                // 静默失败，不影响用户体验
-            }
-        }
-    }
-
     /**
      * 搜索智能体
      */

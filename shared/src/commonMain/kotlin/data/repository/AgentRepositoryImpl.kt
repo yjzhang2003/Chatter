@@ -46,10 +46,6 @@ class AgentRepositoryImpl(
         return agentDao.getCustomAgents()
     }
     
-    override suspend fun incrementAgentUsage(id: String): Boolean {
-        return agentDao.incrementAgentUsage(id)
-    }
-    
     override suspend fun searchAgents(query: String): List<Agent> {
         return agentDao.searchAgents(query)
     }

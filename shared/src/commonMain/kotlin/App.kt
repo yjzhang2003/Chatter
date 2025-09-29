@@ -21,7 +21,7 @@ import presentation.ui.component.BottomNavigationBar
 import presentation.ui.component.BottomNavTab
 import domain.model.Conversation
 import domain.model.Agent
-import data.repository.ConversationRepositoryImpl
+import data.repository.ConversationRepositoryDatabaseImpl
 import data.repository.AgentRepositoryImpl
 import data.database.ConversationDao
 import data.database.ChatMessageDao
@@ -47,6 +47,9 @@ fun App() {
     val customModelConfigViewModel = remember { CustomModelConfigViewModel() }
     val apiManagementViewModel = remember { ApiManagementViewModel() }
     
+    // 创建协程作用域
+    val scope = rememberCoroutineScope()
+    
     // 创建数据库依赖
     val databaseDriverFactory = remember { PlatformModule.provideDatabaseDriverFactory() }
     val sqlDriver = remember { databaseDriverFactory.createDriver() }
@@ -55,8 +58,8 @@ fun App() {
     val agentDao = remember { AgentDao(sqlDriver) }
     val agentRepository = remember { AgentRepositoryImpl(agentDao) }
     
-    // 对话仓库
-    val conversationRepository = ConversationRepositoryImpl()
+    // 对话仓库 - 使用基于数据库的实现
+    val conversationRepository = remember { ConversationRepositoryDatabaseImpl(conversationDao, chatMessageDao) }
     val conversationListViewModel = ConversationListViewModel(conversationRepository)
     val conversationDetailViewModel = ConversationDetailViewModel(conversationRepository, agentRepository)
     val agentViewModel = remember { AgentViewModel(agentRepository) }
@@ -131,8 +134,10 @@ fun App() {
                                 val updatedConversation = conversation.copy(agentId = agent.id)
                                 selectedConversation = updatedConversation
                                 
-                                // 增加智能体使用次数
-                                agentViewModel.incrementAgentUsage(agent.id)
+                                // 持久化到数据库
+                                scope.launch {
+                                    conversationRepository.updateConversation(updatedConversation)
+                                }
                             }
                             currentScreen = Screen.Chat
                         },
