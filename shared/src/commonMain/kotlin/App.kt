@@ -130,13 +130,29 @@ fun App() {
                         },
                         onAgentSelected = { agent ->
                             // 更新当前对话的智能体
+                            println("Debug: 选择智能体 - agentId: ${agent.id}, agentName: ${agent.name}")
                             selectedConversation?.let { conversation ->
+                                println("Debug: 更新前对话信息 - conversationId: ${conversation.id}, 原agentId: ${conversation.agentId}")
                                 val updatedConversation = conversation.copy(agentId = agent.id)
                                 selectedConversation = updatedConversation
+                                println("Debug: 更新后对话信息 - conversationId: ${updatedConversation.id}, 新agentId: ${updatedConversation.agentId}")
                                 
                                 // 持久化到数据库
                                 scope.launch {
-                                    conversationRepository.updateConversation(updatedConversation)
+                                    val success = conversationRepository.updateConversation(updatedConversation)
+                                    println("Debug: 数据库更新结果: $success")
+                                    
+                                    // 刷新ConversationDetailViewModel中的对话信息
+                                    if (success) {
+                                        println("Debug: 准备调用refreshConversation")
+                                        // 确保在主线程中调用refreshConversation
+                                        launch {
+                                            conversationDetailViewModel.refreshConversation()
+                                        }
+                                        println("Debug: refreshConversation调用完成")
+                                    } else {
+                                        println("Debug: 数据库更新失败，跳过刷新")
+                                    }
                                 }
                             }
                             currentScreen = Screen.Chat

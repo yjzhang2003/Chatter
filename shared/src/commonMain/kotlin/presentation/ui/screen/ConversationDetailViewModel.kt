@@ -54,6 +54,9 @@ class ConversationDetailViewModel(
                 
                 // 获取对话信息
                 val conversation = conversationRepository.getConversationById(conversationId)
+                println("Debug: loadConversation - conversationId: $conversationId")
+                println("Debug: loadConversation - 获取到的对话信息: ${conversation?.title}, agentId: ${conversation?.agentId}")
+                
                 if (conversation == null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -129,24 +132,34 @@ class ConversationDetailViewModel(
                 
                 // 获取当前对话的智能体信息
                 val currentConversation = _uiState.value.conversation
+                println("Debug: 当前对话信息: ${currentConversation?.title}, agentId: ${currentConversation?.agentId}")
+                
                 val agent = currentConversation?.agentId?.let { agentId ->
-                    agentRepository.getAgentById(agentId)
+                    println("Debug: 正在获取智能体信息，agentId: $agentId")
+                    val agentInfo = agentRepository.getAgentById(agentId)
+                    println("Debug: 获取到的智能体信息: ${agentInfo?.name}, systemPrompt长度: ${agentInfo?.systemPrompt?.length}")
+                    agentInfo
                 }
                 
                 // 构建包含智能体系统提示的上下文消息
                 val contextMessages = mutableListOf<ChatMessage>()
                 
                 // 如果有智能体，添加系统提示作为第一条消息
-                agent?.let { agentInfo ->
-                    if (agentInfo.systemPrompt.isNotBlank()) {
+                if (agent != null) {
+                    println("Debug: 智能体不为空: ${agent.name}")
+                    if (agent.systemPrompt.isNotBlank()) {
                         val systemMessage = ChatMessage.create(
                             conversationId = conversationId,
-                            content = agentInfo.systemPrompt,
+                            content = agent.systemPrompt,
                             sender = MessageSender.SYSTEM
                         )
                         contextMessages.add(systemMessage)
-                        println("Debug: 添加智能体系统提示: ${agentInfo.name} - ${agentInfo.systemPrompt.take(50)}...")
+                        println("Debug: 添加智能体系统提示: ${agent.name} - ${agent.systemPrompt.take(50)}...")
+                    } else {
+                        println("Debug: 智能体系统提示为空")
                     }
+                } else {
+                    println("Debug: 没有找到智能体信息")
                 }
                 
                 // 获取历史对话上下文消息
@@ -226,6 +239,29 @@ class ConversationDetailViewModel(
      */
     fun resetStatus() {
         _uiState.value = _uiState.value.copy(status = Status.Idle)
+    }
+    
+    /**
+     * 刷新当前对话信息
+     * 用于在对话信息更新后重新加载
+     */
+    fun refreshConversation() {
+        val conversationId = currentConversationId ?: return
+        println("Debug: refreshConversation - 刷新对话信息，conversationId: $conversationId")
+        
+        viewModelScope.launch {
+            try {
+                // 重新获取对话信息
+                val conversation = conversationRepository.getConversationById(conversationId)
+                println("Debug: refreshConversation - 刷新后的对话信息: ${conversation?.title}, agentId: ${conversation?.agentId}")
+                
+                if (conversation != null) {
+                    _uiState.value = _uiState.value.copy(conversation = conversation)
+                }
+            } catch (e: Exception) {
+                println("Debug: refreshConversation - 刷新失败: ${e.message}")
+            }
+        }
     }
 }
 
