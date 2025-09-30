@@ -10,6 +10,7 @@ import domain.model.Sender
 import domain.model.Status
 import domain.repository.AIRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * 聊天页面的ViewModel
@@ -123,5 +124,16 @@ class ChatViewModel : ViewModel() {
             messages = _uiState.value.messages + message,
             status = if (isLoading) Status.Loading else Status.Idle
         )
+    }
+    
+    /**
+     * 检查当前模型是否支持多模态输入
+     * 单一职责：仅负责查询当前模型并返回其是否支持图片输入
+     */
+    fun supportsMultimodal(): Boolean {
+        return runBlocking {
+            val currentModel = aiRepository.getCurrentModel()
+            aiRepository.supportsMultimodal(currentModel)
+        }
     }
 }

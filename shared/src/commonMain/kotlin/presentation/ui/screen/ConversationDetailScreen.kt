@@ -112,15 +112,21 @@ fun ConversationDetailScreen(
             )
         },
         bottomBar = {
+            LaunchedEffect(Unit) {
+                // 进入页面时刷新一次模型支持状态
+                viewModel.refreshModelSupport()
+            }
+
             CustomBottomBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp)
                     .padding(bottom = 30.dp, top = 5.dp),
                 status = uiState.status,
-                onSendClick = { text, _ ->
+                supportsImageUpload = viewModel.supportsMultimodal(),
+                onSendClick = { text, images ->
                     coroutineScope.launch {
-                        viewModel.sendMessage(text)
+                        viewModel.sendMessage(text, images)
                     }
                 }
             )

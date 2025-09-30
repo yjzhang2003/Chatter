@@ -76,15 +76,16 @@ fun CustomAppBar(
             navigationIcon = {
                 Row {
                     Spacer(modifier = Modifier.width(10.dp))
-                    Image(
-                        painter = painterResource("logo.png"),
-                        contentDescription = "Compose Multiplatform icon",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(45.dp)
-                            .clip(CircleShape)
-                            .clickable {}
-                    )
+                    // 暂时移除logo图片，避免编译错误
+                    // Image(
+                    //     painter = painterResource("logo.png"),
+                    //     contentDescription = "Compose Multiplatform icon",
+                    //     contentScale = ContentScale.Crop,
+                    //     modifier = Modifier
+                    //         .size(45.dp)
+                    //         .clip(CircleShape)
+                    //         .clickable {}
+                    // )
                     Spacer(modifier = Modifier.width(5.dp))
                 }
             },

@@ -58,6 +58,7 @@ fun ChatScreen(
                     .padding(horizontal = 10.dp)
                     .padding(bottom = 30.dp, top = 5.dp),
                 status = chatUiState.value.status,
+                supportsImageUpload = viewModel.supportsMultimodal(),
                 onSendClick = { text, images ->
                     coroutineScope.launch {
                         viewModel.generateContent(text, images)

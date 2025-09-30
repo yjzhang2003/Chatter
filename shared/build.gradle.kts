@@ -47,6 +47,8 @@ kotlin {
                 implementation("com.mikepenz:multiplatform-markdown-renderer:0.10.0")
                 implementation("app.cash.sqldelight:runtime:2.0.1")
                 implementation("app.cash.sqldelight:coroutines-extensions:2.0.1")
+                implementation("io.github.onseok:peekaboo-ui:0.5.2")
+                implementation("io.github.onseok:peekaboo-image-picker:0.5.2")
 
             }
         }

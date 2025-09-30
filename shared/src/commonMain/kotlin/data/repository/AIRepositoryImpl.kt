@@ -113,9 +113,13 @@ class AIRepositoryImpl : AIRepository {
             AIModel.KIMI -> false
             AIModel.DOUBAO -> false
             AIModel.CUSTOM -> {
-                // 对于自定义模型，需要从配置中获取
-                val customModel = runBlocking { preferencesManager.getCustomModel() }
-                customModel?.supportsMultimodal ?: false
+                // 对于自定义模型，优先从管理器获取活跃模型的配置，兼容旧数据
+                val activeModelSupports = runBlocking {
+                    preferencesManager.getCustomModelManager()?.getActiveModel()?.supportsMultimodal
+                }
+                activeModelSupports ?: runBlocking {
+                    preferencesManager.getCustomModel()?.supportsMultimodal
+                } ?: false
             }
         }
     }

@@ -13,7 +13,9 @@ import domain.model.Conversation
 import domain.model.ChatMessage
 import domain.model.MessageSender
 import domain.model.Status
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.launch
+import io.ktor.util.encodeBase64
 
 /**
  * 对话详情页面的ViewModel
@@ -34,6 +36,9 @@ class ConversationDetailViewModel(
     private val memoryManager = MemoryManager(agentRepository)
     private val memoryUseCase = MemoryUseCase(memoryManager, agentRepository, conversationRepository)
     
+    // 新增：当前模型是否支持多模态的状态，供UI订阅
+    private val _supportsMultimodal = mutableStateOf(false)
+    val supportsMultimodalState: State<Boolean> = _supportsMultimodal
     private var currentConversationId: String? = null
     
     /**
@@ -94,150 +99,103 @@ class ConversationDetailViewModel(
      * 发送消息
      * 处理用户消息发送和AI回复生成
      */
-    fun sendMessage(text: String) {
+    fun sendMessage(text: String, images: List<ByteArray> = emptyList()) {
         val conversationId = currentConversationId ?: return
-        
         // 防止重复发送
         if (_uiState.value.status is Status.Loading) {
             return
         }
-        
         viewModelScope.launch {
             try {
                 // 设置加载状态
                 _uiState.value = _uiState.value.copy(status = Status.Loading)
-                
-                // 确保ConversationManager切换到当前对话
+                // 切换到当前对话
                 conversationManager.switchToConversation(conversationId)
-                
-                // 创建用户消息
+                // 将图片转为Base64字符串以持久化到消息中
+                val base64Images = images.map { it.encodeBase64() }
+                // 创建用户消息（包含图片）
                 val userMessage = ChatMessage.createUserMessage(
                     conversationId = conversationId,
-                    content = text
+                    content = text,
+                    images = base64Images
                 )
-                
-                // 添加用户消息到UI
+                // 添加用户消息到UI并保存
                 _uiState.value = _uiState.value.copy(
                     messages = _uiState.value.messages + userMessage
                 )
-                
-                // 保存用户消息到数据库
                 conversationManager.saveMessage(userMessage)
-                
-                // 处理用户消息的记忆创建
+                // 记忆处理
                 val conversation = _uiState.value.conversation
                 val agentId = conversation?.agentId
                 if (agentId != null) {
                     memoryUseCase.processMessageForMemory(agentId, userMessage, conversationId)
                 }
-                
                 // 创建AI消息占位符
                 val aiMessage = ChatMessage.createAiMessage(
                     conversationId = conversationId,
                     content = "",
                     isLoading = true
                 )
-                
-                // 添加AI消息占位符到UI
                 _uiState.value = _uiState.value.copy(
                     messages = _uiState.value.messages + aiMessage
                 )
-                
-                // 获取当前对话的智能体信息
-                val currentConversation = _uiState.value.conversation
-                println("Debug: 当前对话信息: ${currentConversation?.title}, agentId: ${currentConversation?.agentId}")
-                
-                val agent = currentConversation?.agentId?.let { agentId ->
-                    println("Debug: 正在获取智能体信息，agentId: $agentId")
-                    val agentInfo = agentRepository.getAgentById(agentId)
-                    println("Debug: 获取到的智能体信息: ${agentInfo?.name}, systemPrompt长度: ${agentInfo?.systemPrompt?.length}")
-                    agentInfo
-                }
-                
-                // 构建包含智能体系统提示的上下文消息
+                // 构建上下文（系统提示+记忆+历史）
                 val contextMessages = mutableListOf<ChatMessage>()
-                
-                // 如果有智能体，添加系统提示作为第一条消息
-                if (agent != null) {
-                    println("Debug: 智能体不为空: ${agent.name}")
-                    if (agent.systemPrompt.isNotBlank()) {
-                        val systemMessage = ChatMessage.create(
+                val currentConversation = _uiState.value.conversation
+                val agent = currentConversation?.agentId?.let { agentRepository.getAgentById(it) }
+                if (agent != null && agent.systemPrompt.isNotBlank()) {
+                    contextMessages.add(
+                        ChatMessage.create(
                             conversationId = conversationId,
                             content = agent.systemPrompt,
                             sender = MessageSender.SYSTEM
                         )
-                        contextMessages.add(systemMessage)
-                        println("Debug: 添加智能体系统提示: ${agent.name} - ${agent.systemPrompt.take(50)}...")
-                    } else {
-                        println("Debug: 智能体系统提示为空")
-                    }
-                    
-                    // 添加记忆增强的上下文
-                    val memoryContext = memoryUseCase.generateMemoryEnhancedContext(
-                        agentId = agent.id,
+                    )
+                }
+                val memoryContext = agent?.let {
+                    memoryUseCase.generateMemoryEnhancedContext(
+                        agentId = it.id,
                         conversationId = conversationId,
                         currentMessage = text
                     )
-                    
-                    if (memoryContext.isNotBlank()) {
-                        val memoryMessage = ChatMessage.create(
+                } ?: ""
+                if (memoryContext.isNotBlank()) {
+                    contextMessages.add(
+                        ChatMessage.create(
                             conversationId = conversationId,
                             content = memoryContext,
                             sender = MessageSender.SYSTEM
                         )
-                        contextMessages.add(memoryMessage)
-                        println("Debug: 添加记忆上下文: ${memoryContext.take(100)}...")
-                    }
-                } else {
-                    println("Debug: 没有找到智能体信息")
+                    )
                 }
-                
-                // 获取历史对话上下文消息
                 val historyMessages = conversationManager.getContextMessages(
                     currentPrompt = text,
                     useTokenOptimization = true
                 )
                 contextMessages.addAll(historyMessages)
-                
-                // 添加调试日志
-                println("Debug: 总共获取到 ${contextMessages.size} 条上下文消息（包含智能体系统提示）")
-                contextMessages.forEachIndexed { index, message ->
-                    println("Debug: 上下文消息 $index: ${message.sender} - ${message.content.take(50)}...")
-                }
-                
-                // 生成AI回复，传递包含智能体系统提示的上下文消息
-                val aiResponse = when (val result = aiRepository.generate(text, emptyList(), contextMessages)) {
+                // 生成AI回复，传递图片与上下文
+                val aiResponse = when (val result = aiRepository.generate(text, images, contextMessages)) {
                     is Status.Success -> result.data
                     is Status.Error -> result.message
                     else -> "生成回复失败"
                 }
-                
                 // 更新AI消息
                 val updatedAiMessage = aiMessage.copy(
                     content = aiResponse,
                     isLoading = false
                 )
-                
-                // 更新UI中的AI消息
                 _uiState.value = _uiState.value.copy(
-                    messages = _uiState.value.messages.map { message ->
-                        if (message.id == aiMessage.id) updatedAiMessage else message
-                    },
+                    messages = _uiState.value.messages.map { if (it.id == aiMessage.id) updatedAiMessage else it },
                     status = Status.Success("消息发送成功")
                 )
-                
-                // 保存AI消息到数据库
                 conversationManager.saveMessage(updatedAiMessage)
-                
-                // 处理AI消息的记忆创建
                 if (agentId != null) {
                     memoryUseCase.processMessageForMemory(agentId, updatedAiMessage, conversationId)
                 }
-                
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "发送消息失败: ${e.message}",
-                    status = Status.Error("发送消息失败: ${e.message}")
+                    status = Status.Error(e.message ?: "发送失败")
                 )
             }
         }
@@ -350,6 +308,25 @@ class ConversationDetailViewModel(
             } catch (e: Exception) {
                 println("Debug: 更新记忆反馈失败: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * 检查当前模型是否支持多模态输入
+     * 单一职责：提供当前支持状态给UI读取
+     */
+    fun supportsMultimodal(): Boolean {
+        return supportsMultimodalState.value
+    }
+    
+    /**
+     * 刷新当前模型的多模态支持状态
+     * 单一职责：查询当前模型并更新本地状态，供UI响应变化
+     */
+    fun refreshModelSupport() {
+        viewModelScope.launch {
+            val currentModel = aiRepository.getCurrentModel()
+            _supportsMultimodal.value = aiRepository.supportsMultimodal(currentModel)
         }
     }
     

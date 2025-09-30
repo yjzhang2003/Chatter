@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,7 +29,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,41 +45,51 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import domain.model.Status
 import presentation.theme.Gray700
+import com.preat.peekaboo.image.picker.SelectionMode
+import com.preat.peekaboo.image.picker.rememberImagePickerLauncher
+import com.preat.peekaboo.image.picker.toImageBitmap
+import androidx.compose.runtime.rememberCoroutineScope
 
 /**
- * TODO : allow sending attachments without text
+ * 自定义底部输入栏
+ * 支持文本输入和图片上传功能
  */
 @Composable
 fun CustomBottomBar(
     modifier: Modifier = Modifier,
     status: Status,
+    supportsImageUpload: Boolean = false,
     onSendClick: (String, List<ByteArray>) -> Unit
 ) {
     val textState = remember { mutableStateOf("") }
     val images = remember { mutableStateOf(listOf<ByteArray>()) }
+    val scope = rememberCoroutineScope()
 
-    // TODO: 重新实现图片选择功能
-    // val scope = rememberCoroutineScope()
-    // val multipleImagePicker = rememberImagePickerLauncher(
-    //     selectionMode = SelectionMode.Multiple(),
-    //     scope = scope,
-    //     onResult = { images.value = it }
-    // )
+    // 图片选择器
+    val multipleImagePicker = rememberImagePickerLauncher(
+        selectionMode = SelectionMode.Multiple(maxSelection = 5),
+        scope = scope,
+        onResult = { byteArrays ->
+            images.value = byteArrays
+        }
+    )
     Column {
-        // TODO: 重新实现图片预览功能
-        // LazyRow {
-        //     items(images.value.size) { index ->
-        //         val bitmap = images.value[index].toImageBitmap()
-        //         ImageAttachment(
-        //             bitmap = bitmap,
-        //             onCloseClick = {
-        //                 val mutableImages = images.value.toMutableList()
-        //                 mutableImages.removeAt(index)
-        //                 images.value = mutableImages
-        //             }
-        //         )
-        //     }
-        // }
+        // 图片预览功能
+        if (images.value.isNotEmpty()) {
+            LazyRow {
+                items(images.value) { imageByteArray ->
+                    val bitmap = imageByteArray.toImageBitmap()
+                    ImageAttachment(
+                        bitmap = bitmap,
+                        onCloseClick = {
+                            val mutableImages = images.value.toMutableList()
+                            mutableImages.remove(imageByteArray)
+                            images.value = mutableImages
+                        }
+                    )
+                }
+            }
+        }
         TextField(
             value = textState.value,
             onValueChange = { textState.value = it },
@@ -133,17 +143,17 @@ fun CustomBottomBar(
                 )
             },
             leadingIcon = {
+                // 图片上传按钮始终显示；当模型不支持图片上传时置灰并禁用
                 IconButton(
-                    onClick = {
-                        // TODO: 重新实现图片选择功能
-                        // multipleImagePicker.launch()
+                    onClick = { 
+                        multipleImagePicker.launch()
                     },
+                    enabled = supportsImageUpload,
                     content = {
                         Icon(
-                            Icons.Outlined.Add,
-                            contentDescription = null,
-                            modifier = Modifier,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = "添加图片",
+                            tint = if (supportsImageUpload) MaterialTheme.colorScheme.onSecondaryContainer else Gray700
                         )
                     },
                 )
@@ -168,7 +178,8 @@ private fun ImageAttachment(bitmap: ImageBitmap, onCloseClick: () -> Unit = {}) 
             modifier = Modifier
                 .height(80.dp)
                 .wrapContentWidth()
-                .shadow(1.dp, RoundedCornerShape(12.dp)),
+                .shadow(1.dp, RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(12.dp)),
         )
 
         IconButton(
