@@ -247,4 +247,16 @@ class ConversationRepositoryDatabaseImpl(
     private fun generateId(): String {
         return "conv_${Clock.System.now().toEpochMilliseconds()}_${(0..999999).random()}"
     }
+    
+    override suspend fun updateConversationAgent(conversationId: String, agentId: String): Boolean {
+        return mutex.withLock {
+            try {
+                val conversation = getConversationById(conversationId) ?: return@withLock false
+                val updatedConversation = conversation.copy(agentId = agentId)
+                updateConversation(updatedConversation)
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
 }

@@ -16,6 +16,7 @@ import presentation.ui.screen.ConversationListViewModel
 import presentation.ui.screen.ConversationDetailViewModel
 import presentation.ui.screen.AgentSelectionScreen
 import presentation.ui.screen.AgentEditScreen
+import presentation.ui.screen.AgentManagementScreen
 import presentation.ui.screen.AgentViewModel
 import presentation.ui.component.BottomNavigationBar
 import presentation.ui.component.BottomNavTab
@@ -79,6 +80,7 @@ fun App() {
                             selectedTab = tab
                             currentScreen = when (tab) {
                                 BottomNavTab.CONVERSATIONS -> Screen.ConversationList
+                                BottomNavTab.AGENTS -> Screen.AgentManagement
                                 BottomNavTab.SETTINGS -> Screen.Settings
                             }
                         }
@@ -107,10 +109,13 @@ fun App() {
                             agentViewModel.getAgentById(agentId)
                         }
                         
+                        val agentUiState by agentViewModel.uiState
+                        
                         ConversationDetailScreen(
                             conversation = conversation,
                             viewModel = conversationDetailViewModel,
                             currentAgent = currentAgent,
+                            availableAgents = agentUiState.agents,
                             onBackClick = { 
                                 // 清理ViewModel状态，防止内存泄漏
                                 conversationDetailViewModel.clearError()
@@ -120,6 +125,13 @@ fun App() {
                             },
                             onAgentSettingsClick = {
                                 currentScreen = Screen.AgentSelection
+                            },
+                            onAgentSwitch = { selectedAgent ->
+                                // 使用ViewModel的switchAgent方法
+                                conversationDetailViewModel.switchAgent(selectedAgent.id)
+                                
+                                // 更新本地状态
+                                selectedConversation = selectedConversation?.copy(agentId = selectedAgent.id)
                             }
                         )
                     }
@@ -181,7 +193,7 @@ fun App() {
                     AgentEditScreen(
                         agent = selectedAgent,
                         onBackClick = {
-                            currentScreen = Screen.AgentSelection
+                            currentScreen = Screen.AgentManagement
                         },
                         onSaveClick = { name, description, systemPrompt, avatar ->
                             if (isEditingAgent && selectedAgent != null) {
@@ -200,7 +212,26 @@ fun App() {
                                     avatar
                                 )
                             }
-                            currentScreen = Screen.AgentSelection
+                            currentScreen = Screen.AgentManagement
+                        }
+                    )
+                }
+                Screen.AgentManagement -> {
+                    val agentUiState by agentViewModel.uiState
+                    AgentManagementScreen(
+                        agents = agentUiState.agents,
+                        onCreateAgentClick = {
+                            selectedAgent = null
+                            isEditingAgent = false
+                            currentScreen = Screen.AgentEdit
+                        },
+                        onEditAgentClick = { agent ->
+                            selectedAgent = agent
+                            isEditingAgent = true
+                            currentScreen = Screen.AgentEdit
+                        },
+                        onDeleteAgentClick = { agent ->
+                            agentViewModel.deleteAgent(agent.id)
                         }
                     )
                 }
@@ -276,7 +307,8 @@ enum class Screen {
     CustomModelConfig,
     ConversationDetail,
     AgentSelection,
-    AgentEdit
+    AgentEdit,
+    AgentManagement
 }
 
 /**

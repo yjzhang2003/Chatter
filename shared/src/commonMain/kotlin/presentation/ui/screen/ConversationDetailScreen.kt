@@ -19,6 +19,7 @@ import domain.model.Status
 import domain.model.Agent
 import presentation.ui.component.CustomBottomBar
 import presentation.ui.component.MessageBubble
+import presentation.ui.component.AgentSwitchDialog
 import kotlinx.coroutines.launch
 
 /**
@@ -31,12 +32,17 @@ fun ConversationDetailScreen(
     conversation: Conversation,
     viewModel: ConversationDetailViewModel,
     currentAgent: Agent? = null,
+    availableAgents: List<Agent> = emptyList(),
     onBackClick: () -> Unit,
-    onAgentSettingsClick: () -> Unit = {}
+    onAgentSettingsClick: () -> Unit = {},
+    onAgentSwitch: (Agent) -> Unit = {}
 ) {
     val uiState by viewModel.uiState
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    
+    // 智能体切换对话框状态
+    var showAgentSwitchDialog by remember { mutableStateOf(false) }
 
     // 初始化对话 - 每次conversation变化时重新加载
     LaunchedEffect(conversation.id) {
@@ -93,7 +99,7 @@ fun ConversationDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onAgentSettingsClick) {
+                    IconButton(onClick = { showAgentSwitchDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "智能体设置"
@@ -179,5 +185,18 @@ fun ConversationDetailScreen(
                 // TODO: 显示错误消息
             }
         }
+    }
+    
+    // 智能体切换对话框
+    if (showAgentSwitchDialog) {
+        AgentSwitchDialog(
+            currentAgent = currentAgent,
+            availableAgents = availableAgents,
+            onDismiss = { showAgentSwitchDialog = false },
+            onAgentSelected = { selectedAgent ->
+                showAgentSwitchDialog = false
+                onAgentSwitch(selectedAgent)
+            }
+        )
     }
 }

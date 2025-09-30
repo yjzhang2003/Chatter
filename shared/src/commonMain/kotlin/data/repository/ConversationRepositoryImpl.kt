@@ -202,4 +202,14 @@ class ConversationRepositoryImpl : ConversationRepository {
     private fun generateId(): String {
         return "conv_${Clock.System.now().toEpochMilliseconds()}_${(0..999999).random()}"
     }
+    
+    override suspend fun updateConversationAgent(conversationId: String, agentId: String): Boolean {
+        return try {
+            val conversation = getConversationById(conversationId) ?: return false
+            val updatedConversation = conversation.copy(agentId = agentId)
+            updateConversation(updatedConversation)
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

@@ -352,6 +352,32 @@ class ConversationDetailViewModel(
             }
         }
     }
+    
+    /**
+     * 切换智能体
+     * 更新对话的智能体ID，并刷新对话信息
+     * @param newAgentId 新智能体ID
+     */
+    fun switchAgent(newAgentId: String) {
+        val conversationId = currentConversationId ?: return
+        
+        viewModelScope.launch {
+            try {
+                // 更新对话的智能体ID
+                conversationRepository.updateConversationAgent(conversationId, newAgentId)
+                
+                // 刷新对话信息以反映智能体变更
+                refreshConversation()
+                
+                println("Debug: 智能体切换成功，新智能体ID: $newAgentId")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "切换智能体失败: ${e.message}"
+                )
+                println("Debug: 切换智能体失败: ${e.message}")
+            }
+        }
+    }
 }
 
 /**

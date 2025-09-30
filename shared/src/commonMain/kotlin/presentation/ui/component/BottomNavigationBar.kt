@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -66,6 +68,11 @@ enum class BottomNavTab(
         title = "对话",
         selectedIcon = Icons.Filled.Chat,
         unselectedIcon = Icons.Outlined.Chat
+    ),
+    AGENTS(
+        title = "智能体",
+        selectedIcon = Icons.Filled.Person,
+        unselectedIcon = Icons.Outlined.Person
     ),
     SETTINGS(
         title = "设置",

@@ -98,4 +98,12 @@ interface ConversationRepository {
      * 更新对话统计信息（消息数量、最后消息等）
      */
     suspend fun updateConversationStats(conversationId: String): Boolean
+    
+    /**
+     * 更新对话的智能体
+     * @param conversationId 对话ID
+     * @param agentId 新的智能体ID
+     * @return 是否更新成功
+     */
+    suspend fun updateConversationAgent(conversationId: String, agentId: String): Boolean
 }
