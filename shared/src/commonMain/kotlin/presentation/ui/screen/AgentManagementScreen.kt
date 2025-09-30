@@ -34,33 +34,34 @@ fun AgentManagementScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var agentToDelete by remember { mutableStateOf<Agent?>(null) }
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = "智能体管理",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onCreateAgentClick) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "创建智能体"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // 顶部应用栏
+        TopAppBar(
+            title = { 
+                Text(
+                    text = "智能体管理",
+                    fontWeight = FontWeight.Bold
                 )
+            },
+            actions = {
+                IconButton(onClick = onCreateAgentClick) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "创建智能体"
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
-        }
-    ) { paddingValues ->
+        )
+        
+        // 内容区域
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 16.dp)

@@ -72,8 +72,8 @@ fun App() {
     ChatterTheme {
         Scaffold(
             bottomBar = {
-                // 只在主要界面（对话列表和设置）显示底部导航栏
-                if (currentScreen == Screen.ConversationList || currentScreen == Screen.Settings) {
+                // 只在主要界面（对话列表、智能体管理和设置）显示底部导航栏
+                if (currentScreen == Screen.ConversationList || currentScreen == Screen.Settings || currentScreen == Screen.AgentManagement) {
                     BottomNavigationBar(
                         selectedTab = selectedTab,
                         onTabSelected = { tab ->
