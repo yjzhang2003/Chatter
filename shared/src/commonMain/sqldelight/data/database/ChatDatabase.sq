@@ -165,3 +165,279 @@ DELETE FROM chat_message;
 
 clearAllConversations:
 DELETE FROM conversation;
+
+-- 智能体记忆表
+CREATE TABLE agent_memory (
+    id TEXT NOT NULL PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    conversation_id TEXT,
+    message_id TEXT,
+    content TEXT NOT NULL,
+    memory_type TEXT NOT NULL DEFAULT 'conversation', -- conversation, fact, preference, skill
+    importance_score REAL NOT NULL DEFAULT 0.5, -- 0.0-1.0 重要性评分
+    access_count INTEGER NOT NULL DEFAULT 0, -- 访问次数
+    last_accessed_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    tags TEXT NOT NULL DEFAULT '', -- JSON数组存储标签
+    embedding_vector TEXT, -- 向量化表示，用于语义检索
+    FOREIGN KEY (agent_id) REFERENCES agent(id) ON DELETE CASCADE,
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE SET NULL,
+    FOREIGN KEY (message_id) REFERENCES chat_message(id) ON DELETE SET NULL
+);
+
+-- 记忆关联表（记忆之间的关联关系）
+CREATE TABLE memory_relation (
+    id TEXT NOT NULL PRIMARY KEY,
+    source_memory_id TEXT NOT NULL,
+    target_memory_id TEXT NOT NULL,
+    relation_type TEXT NOT NULL, -- similar, related, conflict, update
+    strength REAL NOT NULL DEFAULT 0.5, -- 关联强度 0.0-1.0
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (source_memory_id) REFERENCES agent_memory(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_memory_id) REFERENCES agent_memory(id) ON DELETE CASCADE
+);
+
+-- MCP服务配置表
+CREATE TABLE mcp_service (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    service_type TEXT NOT NULL, -- transport, ride_hailing, weather, calendar, github, etc.
+    endpoint_url TEXT NOT NULL,
+    api_version TEXT NOT NULL DEFAULT '1.0',
+    auth_type TEXT NOT NULL DEFAULT 'none', -- none, api_key, oauth, bearer
+    auth_config TEXT NOT NULL DEFAULT '{}', -- JSON配置
+    capabilities TEXT NOT NULL DEFAULT '[]', -- JSON数组存储支持的功能
+    is_enabled INTEGER NOT NULL DEFAULT 1,
+    is_system INTEGER NOT NULL DEFAULT 0, -- 是否为系统预设服务
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+-- 智能体MCP配置表
+CREATE TABLE agent_mcp_config (
+    id TEXT NOT NULL PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    mcp_service_id TEXT NOT NULL,
+    is_enabled INTEGER NOT NULL DEFAULT 1,
+    config_override TEXT NOT NULL DEFAULT '{}', -- JSON配置覆盖
+    usage_count INTEGER NOT NULL DEFAULT 0,
+    last_used_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (agent_id) REFERENCES agent(id) ON DELETE CASCADE,
+    FOREIGN KEY (mcp_service_id) REFERENCES mcp_service(id) ON DELETE CASCADE,
+    UNIQUE(agent_id, mcp_service_id)
+);
+
+-- MCP调用日志表
+CREATE TABLE mcp_call_log (
+    id TEXT NOT NULL PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    mcp_service_id TEXT NOT NULL,
+    conversation_id TEXT,
+    message_id TEXT,
+    method_name TEXT NOT NULL,
+    request_params TEXT NOT NULL DEFAULT '{}', -- JSON参数
+    response_data TEXT, -- JSON响应
+    status TEXT NOT NULL, -- success, error, timeout
+    error_message TEXT,
+    execution_time INTEGER, -- 执行时间（毫秒）
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (agent_id) REFERENCES agent(id) ON DELETE CASCADE,
+    FOREIGN KEY (mcp_service_id) REFERENCES mcp_service(id) ON DELETE CASCADE,
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE SET NULL,
+    FOREIGN KEY (message_id) REFERENCES chat_message(id) ON DELETE SET NULL
+);
+
+-- 创建索引以提高查询性能
+CREATE INDEX idx_agent_memory_agent_id ON agent_memory(agent_id);
+CREATE INDEX idx_agent_memory_conversation_id ON agent_memory(conversation_id);
+CREATE INDEX idx_agent_memory_type ON agent_memory(memory_type);
+CREATE INDEX idx_agent_memory_importance ON agent_memory(importance_score DESC);
+CREATE INDEX idx_agent_memory_created_at ON agent_memory(created_at DESC);
+CREATE INDEX idx_agent_memory_last_accessed ON agent_memory(last_accessed_at DESC);
+
+CREATE INDEX idx_memory_relation_source ON memory_relation(source_memory_id);
+CREATE INDEX idx_memory_relation_target ON memory_relation(target_memory_id);
+CREATE INDEX idx_memory_relation_type ON memory_relation(relation_type);
+
+CREATE INDEX idx_mcp_service_type ON mcp_service(service_type);
+CREATE INDEX idx_mcp_service_enabled ON mcp_service(is_enabled);
+
+CREATE INDEX idx_agent_mcp_config_agent_id ON agent_mcp_config(agent_id);
+CREATE INDEX idx_agent_mcp_config_service_id ON agent_mcp_config(mcp_service_id);
+CREATE INDEX idx_agent_mcp_config_enabled ON agent_mcp_config(is_enabled);
+
+CREATE INDEX idx_mcp_call_log_agent_id ON mcp_call_log(agent_id);
+CREATE INDEX idx_mcp_call_log_service_id ON mcp_call_log(mcp_service_id);
+CREATE INDEX idx_mcp_call_log_created_at ON mcp_call_log(created_at DESC);
+CREATE INDEX idx_mcp_call_log_status ON mcp_call_log(status);
+
+-- 智能体记忆相关查询
+getMemoriesByAgentId:
+SELECT * FROM agent_memory 
+WHERE agent_id = ? 
+ORDER BY importance_score DESC, last_accessed_at DESC;
+
+getMemoriesByConversationId:
+SELECT * FROM agent_memory 
+WHERE conversation_id = ? 
+ORDER BY created_at ASC;
+
+getMemoryById:
+SELECT * FROM agent_memory WHERE id = ?;
+
+insertMemory:
+INSERT INTO agent_memory (
+    id, agent_id, conversation_id, message_id, content, memory_type, 
+    importance_score, access_count, last_accessed_at, created_at, 
+    updated_at, tags, embedding_vector
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateMemory:
+UPDATE agent_memory 
+SET content = ?, memory_type = ?, importance_score = ?, access_count = ?, 
+    last_accessed_at = ?, updated_at = ?, tags = ?, embedding_vector = ?
+WHERE id = ?;
+
+deleteMemory:
+DELETE FROM agent_memory WHERE id = ?;
+
+deleteMemoriesByAgentId:
+DELETE FROM agent_memory WHERE agent_id = ?;
+
+searchMemories:
+SELECT * FROM agent_memory 
+WHERE agent_id = ? AND (content LIKE '%' || ? || '%' OR tags LIKE '%' || ? || '%')
+ORDER BY importance_score DESC, last_accessed_at DESC;
+
+getTopMemories:
+SELECT * FROM agent_memory 
+WHERE agent_id = ? 
+ORDER BY importance_score DESC, access_count DESC 
+LIMIT ?;
+
+updateMemoryAccess:
+UPDATE agent_memory 
+SET access_count = access_count + 1, last_accessed_at = ?
+WHERE id = ?;
+
+-- 记忆关联相关查询
+getMemoryRelations:
+SELECT * FROM memory_relation 
+WHERE source_memory_id = ? OR target_memory_id = ?
+ORDER BY strength DESC;
+
+insertMemoryRelation:
+INSERT INTO memory_relation (id, source_memory_id, target_memory_id, relation_type, strength, created_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
+deleteMemoryRelation:
+DELETE FROM memory_relation WHERE id = ?;
+
+-- MCP服务相关查询
+getAllMCPServices:
+SELECT * FROM mcp_service ORDER BY is_system DESC, name ASC;
+
+getEnabledMCPServices:
+SELECT * FROM mcp_service WHERE is_enabled = 1 ORDER BY name ASC;
+
+getMCPServiceById:
+SELECT * FROM mcp_service WHERE id = ?;
+
+getMCPServicesByType:
+SELECT * FROM mcp_service WHERE service_type = ? AND is_enabled = 1 ORDER BY name ASC;
+
+insertMCPService:
+INSERT INTO mcp_service (
+    id, name, display_name, description, service_type, endpoint_url, 
+    api_version, auth_type, auth_config, capabilities, is_enabled, 
+    is_system, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateMCPService:
+UPDATE mcp_service 
+SET name = ?, display_name = ?, description = ?, service_type = ?, 
+    endpoint_url = ?, api_version = ?, auth_type = ?, auth_config = ?, 
+    capabilities = ?, is_enabled = ?, updated_at = ?
+WHERE id = ?;
+
+deleteMCPService:
+DELETE FROM mcp_service WHERE id = ? AND is_system = 0;
+
+-- 智能体MCP配置相关查询
+getAgentMCPConfigs:
+SELECT amc.*, ms.name, ms.display_name, ms.service_type 
+FROM agent_mcp_config amc
+JOIN mcp_service ms ON amc.mcp_service_id = ms.id
+WHERE amc.agent_id = ?
+ORDER BY ms.name ASC;
+
+getEnabledAgentMCPConfigs:
+SELECT amc.*, ms.name, ms.display_name, ms.service_type 
+FROM agent_mcp_config amc
+JOIN mcp_service ms ON amc.mcp_service_id = ms.id
+WHERE amc.agent_id = ? AND amc.is_enabled = 1 AND ms.is_enabled = 1
+ORDER BY ms.name ASC;
+
+getAgentMCPConfigById:
+SELECT * FROM agent_mcp_config WHERE id = ?;
+
+insertAgentMCPConfig:
+INSERT INTO agent_mcp_config (
+    id, agent_id, mcp_service_id, is_enabled, config_override, 
+    usage_count, last_used_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateAgentMCPConfig:
+UPDATE agent_mcp_config 
+SET is_enabled = ?, config_override = ?, usage_count = ?, 
+    last_used_at = ?, updated_at = ?
+WHERE id = ?;
+
+deleteAgentMCPConfig:
+DELETE FROM agent_mcp_config WHERE id = ?;
+
+deleteAgentMCPConfigsByAgentId:
+DELETE FROM agent_mcp_config WHERE agent_id = ?;
+
+updateMCPUsage:
+UPDATE agent_mcp_config 
+SET usage_count = usage_count + 1, last_used_at = ?
+WHERE agent_id = ? AND mcp_service_id = ?;
+
+-- MCP调用日志相关查询
+getMCPCallLogs:
+SELECT * FROM mcp_call_log 
+WHERE agent_id = ? 
+ORDER BY created_at DESC 
+LIMIT ?;
+
+getMCPCallLogsByService:
+SELECT * FROM mcp_call_log 
+WHERE mcp_service_id = ? 
+ORDER BY created_at DESC 
+LIMIT ?;
+
+insertMCPCallLog:
+INSERT INTO mcp_call_log (
+    id, agent_id, mcp_service_id, conversation_id, message_id, 
+    method_name, request_params, response_data, status, error_message, 
+    execution_time, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteMCPCallLogs:
+DELETE FROM mcp_call_log WHERE created_at < ?;
+
+getMCPServiceStats:
+SELECT 
+    mcp_service_id,
+    COUNT(*) AS total_calls,
+    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_calls,
+    AVG(execution_time) AS avg_execution_time
+FROM mcp_call_log 
+WHERE agent_id = ? AND created_at > ?
+GROUP BY mcp_service_id;

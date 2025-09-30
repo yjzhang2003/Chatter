@@ -6,6 +6,8 @@ import data.repository.ConversationRepository
 import domain.repository.AgentRepository
 import data.repository.AIRepositoryImpl
 import domain.manager.ConversationManager
+import domain.manager.MemoryManager
+import domain.usecase.MemoryUseCase
 import dev.icerock.moko.mvvm.viewmodel.ViewModel
 import domain.model.Conversation
 import domain.model.ChatMessage
@@ -27,6 +29,10 @@ class ConversationDetailViewModel(
     
     private val conversationManager = ConversationManager(conversationRepository)
     private val aiRepository = AIRepositoryImpl()
+    
+    // 记忆系统组件
+    private val memoryManager = MemoryManager(agentRepository)
+    private val memoryUseCase = MemoryUseCase(memoryManager, agentRepository, conversationRepository)
     
     private var currentConversationId: String? = null
     
@@ -118,6 +124,13 @@ class ConversationDetailViewModel(
                 // 保存用户消息到数据库
                 conversationManager.saveMessage(userMessage)
                 
+                // 处理用户消息的记忆创建
+                val conversation = _uiState.value.conversation
+                val agentId = conversation?.agentId
+                if (agentId != null) {
+                    memoryUseCase.processMessageForMemory(agentId, userMessage, conversationId)
+                }
+                
                 // 创建AI消息占位符
                 val aiMessage = ChatMessage.createAiMessage(
                     conversationId = conversationId,
@@ -157,6 +170,23 @@ class ConversationDetailViewModel(
                         println("Debug: 添加智能体系统提示: ${agent.name} - ${agent.systemPrompt.take(50)}...")
                     } else {
                         println("Debug: 智能体系统提示为空")
+                    }
+                    
+                    // 添加记忆增强的上下文
+                    val memoryContext = memoryUseCase.generateMemoryEnhancedContext(
+                        agentId = agent.id,
+                        conversationId = conversationId,
+                        currentMessage = text
+                    )
+                    
+                    if (memoryContext.isNotBlank()) {
+                        val memoryMessage = ChatMessage.create(
+                            conversationId = conversationId,
+                            content = memoryContext,
+                            sender = MessageSender.SYSTEM
+                        )
+                        contextMessages.add(memoryMessage)
+                        println("Debug: 添加记忆上下文: ${memoryContext.take(100)}...")
                     }
                 } else {
                     println("Debug: 没有找到智能体信息")
@@ -198,6 +228,11 @@ class ConversationDetailViewModel(
                 
                 // 保存AI消息到数据库
                 conversationManager.saveMessage(updatedAiMessage)
+                
+                // 处理AI消息的记忆创建
+                if (agentId != null) {
+                    memoryUseCase.processMessageForMemory(agentId, updatedAiMessage, conversationId)
+                }
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -260,6 +295,60 @@ class ConversationDetailViewModel(
                 }
             } catch (e: Exception) {
                 println("Debug: refreshConversation - 刷新失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 获取对话记忆摘要
+     * @return 记忆摘要文本
+     */
+    fun getMemorySummary(): String {
+        val conversationId = currentConversationId ?: return ""
+        val agentId = _uiState.value.conversation?.agentId ?: return ""
+        
+        return try {
+            // 这里需要使用runBlocking或者改为suspend函数
+            // 为了简化，先返回空字符串，实际使用时需要在协程中调用
+            ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+    
+    /**
+     * 搜索记忆
+     * @param query 搜索查询
+     */
+    fun searchMemories(query: String) {
+        val agentId = _uiState.value.conversation?.agentId ?: return
+        
+        viewModelScope.launch {
+            try {
+                val memories = memoryUseCase.searchMemories(agentId, query)
+                // 可以将搜索结果添加到UI状态中，这里暂时只打印日志
+                println("Debug: 搜索到 ${memories.size} 条相关记忆")
+                memories.forEach { memory ->
+                    println("Debug: 记忆内容: ${memory.content.take(50)}...")
+                }
+            } catch (e: Exception) {
+                println("Debug: 搜索记忆失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 更新记忆反馈
+     * @param memoryId 记忆ID
+     * @param isHelpful 是否有帮助
+     */
+    fun updateMemoryFeedback(memoryId: String, isHelpful: Boolean) {
+        viewModelScope.launch {
+            try {
+                memoryUseCase.updateMemoryFeedback(memoryId, isHelpful)
+                println("Debug: 记忆反馈更新成功")
+            } catch (e: Exception) {
+                println("Debug: 更新记忆反馈失败: ${e.message}")
             }
         }
     }

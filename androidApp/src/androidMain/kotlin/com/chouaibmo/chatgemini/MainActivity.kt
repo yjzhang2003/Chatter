@@ -1,6 +1,6 @@
 package com.chouaibmo.chatgemini
 
-import MainView
+import presentation.App
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,7 +11,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MainView()
+            App()
         }
     }
 }

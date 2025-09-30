@@ -26,6 +26,8 @@ import data.repository.AgentRepositoryImpl
 import data.database.ConversationDao
 import data.database.ChatMessageDao
 import data.database.AgentDao
+import data.database.AgentMemoryDao
+import data.database.MCPServiceDao
 import di.PlatformModule
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,7 +58,9 @@ fun App() {
     val conversationDao = remember { ConversationDao(sqlDriver) }
     val chatMessageDao = remember { ChatMessageDao(sqlDriver) }
     val agentDao = remember { AgentDao(sqlDriver) }
-    val agentRepository = remember { AgentRepositoryImpl(agentDao) }
+    val agentMemoryDao = remember { AgentMemoryDao(sqlDriver) }
+    val mcpServiceDao = remember { MCPServiceDao(sqlDriver) }
+    val agentRepository = remember { AgentRepositoryImpl(agentDao, agentMemoryDao, mcpServiceDao) }
     
     // 对话仓库 - 使用基于数据库的实现
     val conversationRepository = remember { ConversationRepositoryDatabaseImpl(conversationDao, chatMessageDao) }

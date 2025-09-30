@@ -1,16 +1,31 @@
 package data.repository
 
 import data.database.AgentDao
+import data.database.AgentMemoryDao
+import data.database.MCPServiceDao
 import domain.model.Agent
+import domain.model.AgentMemory
+import domain.model.MemoryRelation
+import domain.model.MCPService
+import domain.model.AgentMCPConfig
+import domain.model.MCPCallLog
+import domain.model.MCPServiceType
+import domain.model.AuthType
 import domain.repository.AgentRepository
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * 智能体仓库实现类
- * 实现智能体管理的具体业务逻辑
+ * 实现智能体管理的具体业务逻辑，包括长期记忆和MCP功能
  */
 class AgentRepositoryImpl(
-    private val agentDao: AgentDao
+    private val agentDao: AgentDao,
+    private val agentMemoryDao: AgentMemoryDao,
+    private val mcpServiceDao: MCPServiceDao
 ) : AgentRepository {
+    
+    // ========== 基础智能体管理 ==========
     
     override suspend fun getAllAgents(): List<Agent> {
         return agentDao.getAllAgents()
@@ -32,6 +47,9 @@ class AgentRepositoryImpl(
         // 只允许删除自定义智能体
         val agent = agentDao.getAgentById(id)
         return if (agent?.isCustom() == true) {
+            // 删除智能体时同时删除相关的记忆和MCP配置
+            agentMemoryDao.deleteMemoriesByAgentId(id)
+            mcpServiceDao.deleteAgentMCPConfigsByAgentId(id)
             agentDao.deleteAgent(id)
         } else {
             false
@@ -59,6 +77,123 @@ class AgentRepositoryImpl(
             presetAgents.forEach { preset ->
                 if (existingPresets.none { it.id == preset.id }) {
                     agentDao.insertAgent(preset)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    // ========== 长期记忆管理 ==========
+    
+    override suspend fun getAgentMemories(agentId: String): List<AgentMemory> {
+        return agentMemoryDao.getMemoriesByAgentId(agentId)
+    }
+    
+    override suspend fun getMemoriesByConversation(conversationId: String): List<AgentMemory> {
+        return agentMemoryDao.getMemoriesByConversationId(conversationId)
+    }
+    
+    override suspend fun createMemory(memory: AgentMemory): Boolean {
+        return agentMemoryDao.insertMemory(memory)
+    }
+    
+    override suspend fun updateMemory(memory: AgentMemory): Boolean {
+        return agentMemoryDao.updateMemory(memory)
+    }
+    
+    override suspend fun deleteMemory(memoryId: String): Boolean {
+        return agentMemoryDao.deleteMemory(memoryId)
+    }
+    
+    override suspend fun searchMemories(agentId: String, query: String): List<AgentMemory> {
+        return agentMemoryDao.searchMemories(agentId, query)
+    }
+    
+    override suspend fun getTopMemories(agentId: String, limit: Int): List<AgentMemory> {
+        return agentMemoryDao.getTopMemories(agentId, limit)
+    }
+    
+    override suspend fun updateMemoryAccess(memoryId: String, accessTime: Instant): Boolean {
+        return agentMemoryDao.updateMemoryAccess(memoryId, accessTime)
+    }
+    
+    override suspend fun createMemoryRelation(relation: MemoryRelation): Boolean {
+        return agentMemoryDao.insertMemoryRelation(relation)
+    }
+    
+    override suspend fun getMemoryRelations(memoryId: String): List<MemoryRelation> {
+        return agentMemoryDao.getMemoryRelations(memoryId)
+    }
+    
+    // ========== MCP服务管理 ==========
+    
+    override suspend fun getAllMCPServices(): List<MCPService> {
+        return mcpServiceDao.getAllMCPServices()
+    }
+    
+    override suspend fun getMCPServicesByType(serviceType: MCPServiceType): List<MCPService> {
+        return mcpServiceDao.getMCPServicesByType(serviceType)
+    }
+    
+    override suspend fun getEnabledMCPServices(): List<MCPService> {
+        return mcpServiceDao.getEnabledMCPServices()
+    }
+    
+    override suspend fun createMCPService(service: MCPService): Boolean {
+        return mcpServiceDao.insertMCPService(service)
+    }
+    
+    override suspend fun updateMCPService(service: MCPService): Boolean {
+        return mcpServiceDao.updateMCPService(service)
+    }
+    
+    override suspend fun deleteMCPService(serviceId: String): Boolean {
+        return mcpServiceDao.deleteMCPService(serviceId)
+    }
+    
+    override suspend fun getAgentMCPConfigs(agentId: String): List<AgentMCPConfig> {
+        return mcpServiceDao.getAgentMCPConfigs(agentId)
+    }
+    
+    override suspend fun getEnabledAgentMCPConfigs(agentId: String): List<AgentMCPConfig> {
+        return mcpServiceDao.getEnabledAgentMCPConfigs(agentId)
+    }
+    
+    override suspend fun createAgentMCPConfig(config: AgentMCPConfig): Boolean {
+        return mcpServiceDao.insertAgentMCPConfig(config)
+    }
+    
+    override suspend fun updateAgentMCPConfig(config: AgentMCPConfig): Boolean {
+        return mcpServiceDao.updateAgentMCPConfig(config)
+    }
+    
+    override suspend fun deleteAgentMCPConfig(configId: String): Boolean {
+        return mcpServiceDao.deleteAgentMCPConfig(configId)
+    }
+    
+    override suspend fun logMCPCall(log: MCPCallLog): Boolean {
+        return mcpServiceDao.insertMCPCallLog(log)
+    }
+    
+    override suspend fun getMCPCallLogs(agentId: String, limit: Int): List<MCPCallLog> {
+        return mcpServiceDao.getMCPCallLogs(agentId, limit)
+    }
+    
+    override suspend fun cleanupOldMCPCallLogs(beforeTime: Instant): Boolean {
+        return mcpServiceDao.deleteOldMCPCallLogs(beforeTime)
+    }
+    
+    override suspend fun initializePresetMCPServices(): Boolean {
+        return try {
+            val existingServices = getAllMCPServices()
+            val presetServices = getDefaultPresetMCPServices()
+            
+            // 只添加不存在的预设MCP服务
+            presetServices.forEach { preset ->
+                if (existingServices.none { it.id == preset.id }) {
+                    mcpServiceDao.insertMCPService(preset)
                 }
             }
             true
@@ -113,6 +248,83 @@ class AgentRepositoryImpl(
                 description = "专业的数据分析和商业洞察助手",
                 systemPrompt = "你是一个专业的数据分析师。请帮助用户分析数据、解读趋势、提供商业洞察。用清晰的逻辑和数据支持你的分析结论，并提供可行的建议。",
                 avatar = "📊"
+            )
+        )
+    }
+    
+    /**
+     * 获取默认预设MCP服务列表
+     */
+    private fun getDefaultPresetMCPServices(): List<MCPService> {
+        val now = Clock.System.now()
+        return listOf(
+            MCPService(
+                id = "didi_transport",
+                name = "滴滴出行",
+                displayName = "滴滴出行",
+                description = "提供打车、预约车、查看行程等服务",
+                serviceType = MCPServiceType.RIDE_HAILING,
+                endpointUrl = "https://api.didi.com/mcp",
+                apiVersion = "2.0",
+                authType = AuthType.API_KEY,
+                authConfig = mapOf("api_key_header" to "X-Didi-Key"),
+                capabilities = listOf("book_ride", "cancel_ride", "get_ride_status", "estimate_price"),
+                isEnabled = true,
+                isSystem = true,
+                createdAt = now,
+                updatedAt = now
+            ),
+            MCPService(
+                id = "github_dev",
+                name = "GitHub开发",
+                displayName = "GitHub开发",
+                description = "提供代码仓库管理、Issue跟踪、PR管理等服务",
+                serviceType = MCPServiceType.GITHUB,
+                endpointUrl = "https://api.github.com/mcp",
+                apiVersion = "3.0",
+                authType = AuthType.BEARER,
+                authConfig = mapOf("token_header" to "Authorization"),
+                capabilities = listOf("create_repo", "manage_issues", "create_pr", "get_commits"),
+                isEnabled = true,
+                isSystem = true,
+                createdAt = now,
+                updatedAt = now
+            ),
+            MCPService(
+                id = "weather_service",
+                name = "天气服务",
+                displayName = "天气服务",
+                description = "提供实时天气、天气预报、气象预警等服务",
+                serviceType = MCPServiceType.WEATHER,
+                endpointUrl = "https://api.weather.com/mcp",
+                apiVersion = "1.0",
+                authType = AuthType.API_KEY,
+                authConfig = mapOf("api_key_header" to "X-Weather-Key"),
+                capabilities = listOf("current_weather", "forecast", "weather_alerts", "historical_data"),
+                isEnabled = true,
+                isSystem = true,
+                createdAt = now,
+                updatedAt = now
+            ),
+            MCPService(
+                id = "calendar_manage",
+                name = "日历管理",
+                displayName = "日历管理",
+                description = "提供日程安排、提醒设置、会议管理等服务",
+                serviceType = MCPServiceType.CALENDAR,
+                endpointUrl = "https://api.calendar.com/mcp",
+                apiVersion = "1.0",
+                authType = AuthType.OAUTH,
+                authConfig = mapOf(
+                    "client_id" to "",
+                    "client_secret" to "",
+                    "scope" to "calendar.read,calendar.write"
+                ),
+                capabilities = listOf("create_event", "update_event", "delete_event", "get_schedule"),
+                isEnabled = true,
+                isSystem = true,
+                createdAt = now,
+                updatedAt = now
             )
         )
     }
