@@ -8,6 +8,8 @@ import data.repository.AIRepositoryImpl
 import domain.manager.ConversationManager
 import domain.manager.MemoryManager
 import domain.usecase.MemoryUseCase
+import domain.mcp.MCPIntegrationService
+import domain.mcp.MCPProcessResult
 import dev.icerock.moko.mvvm.viewmodel.ViewModel
 import domain.model.Conversation
 import domain.model.ChatMessage
@@ -23,7 +25,8 @@ import io.ktor.util.encodeBase64
  */
 class ConversationDetailViewModel(
     private val conversationRepository: ConversationRepository,
-    private val agentRepository: AgentRepository
+    private val agentRepository: AgentRepository,
+    private val mcpIntegrationService: MCPIntegrationService
 ) : ViewModel() {
     
     private val _uiState = mutableStateOf(ConversationDetailUiState())
@@ -173,11 +176,34 @@ class ConversationDetailViewModel(
                     useTokenOptimization = true
                 )
                 contextMessages.addAll(historyMessages)
-                // 生成AI回复，传递图片与上下文
-                val aiResponse = when (val result = aiRepository.generate(text, images, contextMessages)) {
-                    is Status.Success -> result.data
-                    is Status.Error -> result.message
-                    else -> "生成回复失败"
+                
+                // MCP处理：检测并处理MCP工具调用
+                val mcpResult = agent?.let { 
+                    mcpIntegrationService.processMessage(it, text, conversationId)
+                } ?: MCPProcessResult.NoAction(text)
+                
+                // 根据MCP处理结果决定后续操作
+                val aiResponse = when (mcpResult) {
+                    is MCPProcessResult.ToolCallExecuted -> {
+                        // MCP工具已执行，使用工具执行结果
+                        mcpResult.result
+                    }
+                    is MCPProcessResult.ToolCallPending -> {
+                        // MCP工具调用待处理，显示等待状态
+                        "正在执行工具调用..."
+                    }
+                    is MCPProcessResult.Error -> {
+                        // MCP处理出错，显示错误信息
+                        "MCP工具调用失败: ${mcpResult.message}"
+                    }
+                    is MCPProcessResult.NoAction -> {
+                        // 无MCP操作，继续正常的AI生成流程
+                        when (val result = aiRepository.generate(text, images, contextMessages)) {
+                            is Status.Success -> result.data
+                            is Status.Error -> result.message
+                            else -> "生成回复失败"
+                        }
+                    }
                 }
                 // 更新AI消息
                 val updatedAiMessage = aiMessage.copy(

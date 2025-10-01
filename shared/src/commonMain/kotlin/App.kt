@@ -30,6 +30,7 @@ import data.database.AgentDao
 import data.database.AgentMemoryDao
 import data.database.MCPServiceDao
 import di.PlatformModule
+import di.MCPModule
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -65,8 +66,12 @@ fun App() {
     
     // 对话仓库 - 使用基于数据库的实现
     val conversationRepository = remember { ConversationRepositoryDatabaseImpl(conversationDao, chatMessageDao) }
+    
+    // MCP服务依赖
+    val mcpIntegrationService = remember { MCPModule.provideMCPIntegrationService(agentRepository) }
+    
     val conversationListViewModel = ConversationListViewModel(conversationRepository)
-    val conversationDetailViewModel = ConversationDetailViewModel(conversationRepository, agentRepository)
+    val conversationDetailViewModel = ConversationDetailViewModel(conversationRepository, agentRepository, mcpIntegrationService)
     val agentViewModel = remember { AgentViewModel(agentRepository) }
     
     ChatterTheme {
