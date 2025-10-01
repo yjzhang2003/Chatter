@@ -39,6 +39,15 @@ import domain.model.MessageSender
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import presentation.theme.Gray700
+import utils.ImageUtils
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.layout.ContentScale
 
 /**
  * MessageBubble组件 - 支持Message类型
@@ -198,14 +207,41 @@ inline fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier) {
                                     modifier = Modifier.padding(top = 14.dp)
                                 )
                             } else {
-                                Markdown(
-                                    content = message.content,
-                                    colors = markdownColor(
-                                        text = LocalContentColor.current,
-                                        codeText = MaterialTheme.colorScheme.onSurface
-                                    ),
-                                    modifier = Modifier.wrapContentWidth()
-                                )
+                                // 显示图片（如果有）
+                                if (message.hasImages()) {
+                                    LazyRow {
+                                        items(message.images) { base64Image ->
+                                            val imageBitmap = ImageUtils.base64ToImageBitmap(base64Image)
+                                            if (imageBitmap != null) {
+                                                Image(
+                                                    bitmap = imageBitmap,
+                                                    contentDescription = "Message Image",
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .heightIn(100.dp, 200.dp)
+                                                        .widthIn(100.dp, 200.dp)
+                                                        .padding(end = 8.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (message.content.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+                                }
+                                
+                                // 显示文本内容（如果有）
+                                if (message.content.isNotBlank()) {
+                                    Markdown(
+                                        content = message.content,
+                                        colors = markdownColor(
+                                            text = LocalContentColor.current,
+                                            codeText = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        modifier = Modifier.wrapContentWidth()
+                                    )
+                                }
                             }
                             Row(
                                 horizontalArrangement = Arrangement.End,

@@ -48,6 +48,8 @@ import androidx.compose.ui.zIndex
 import domain.model.Message
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import utils.ImageUtils
+import com.preat.peekaboo.image.picker.toImageBitmap
 
 private const val rotationValue = 45f
 
@@ -81,15 +83,16 @@ fun MessageImagesStack(
                 cardCount = message.images.size,
                 cardShape = RoundedCornerShape(20.dp),
                 cardContent = { index ->
-                    // TODO: 重新实现图片显示功能
-                    // Image(
-                    //     bitmap = message.images[index].toImageBitmap(),
-                    //     contentDescription = "Same Card Type with Different Image",
-                    //     contentScale = ContentScale.Crop,
-                    //     modifier = Modifier
-                    //         .heightIn(100.dp, 300.dp)
-                    //         .widthIn(50.dp, 200.dp)
-                    // )
+                    // Message.images是ByteArray类型，需要转换为ImageBitmap
+                    val imageBitmap = message.images[index].toImageBitmap()
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = "Message Image ${index + 1}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .heightIn(100.dp, 300.dp)
+                            .widthIn(50.dp, 200.dp)
+                    )
                 },
                 orientation = Orientation.Horizontal(
                     alignment = HorizontalAlignment.EndToStart,
