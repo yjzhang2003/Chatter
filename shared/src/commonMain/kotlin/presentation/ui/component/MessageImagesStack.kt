@@ -49,7 +49,7 @@ import domain.model.Message
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import utils.ImageUtils
-import com.preat.peekaboo.image.picker.toImageBitmap
+import utils.rememberCachedImageFromByteArray
 
 private const val rotationValue = 45f
 
@@ -83,16 +83,19 @@ fun MessageImagesStack(
                 cardCount = message.images.size,
                 cardShape = RoundedCornerShape(20.dp),
                 cardContent = { index ->
-                    // Message.images是ByteArray类型，需要转换为ImageBitmap
-                    val imageBitmap = message.images[index].toImageBitmap()
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = "Message Image ${index + 1}",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .heightIn(100.dp, 300.dp)
-                            .widthIn(50.dp, 200.dp)
-                    )
+                    // Message.images是ByteArray类型，使用缓存加载
+                    val imageState = rememberCachedImageFromByteArray(message.images[index])
+                    val imageBitmap = imageState.value
+                    if (imageBitmap != null) {
+                        Image(
+                            bitmap = imageBitmap,
+                            contentDescription = "Message Image ${index + 1}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .heightIn(100.dp, 300.dp)
+                                .widthIn(50.dp, 200.dp)
+                        )
+                    }
                 },
                 orientation = Orientation.Horizontal(
                     alignment = HorizontalAlignment.EndToStart,

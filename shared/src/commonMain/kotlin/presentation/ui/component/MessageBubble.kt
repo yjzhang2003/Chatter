@@ -39,7 +39,7 @@ import domain.model.MessageSender
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import presentation.theme.Gray700
-import utils.ImageUtils
+import utils.rememberCachedImage
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -211,7 +211,8 @@ inline fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier) {
                                 if (message.hasImages()) {
                                     LazyRow {
                                         items(message.images) { base64Image ->
-                                            val imageBitmap = ImageUtils.base64ToImageBitmap(base64Image)
+                                            val imageState = rememberCachedImage(base64Image)
+                                            val imageBitmap = imageState.value
                                             if (imageBitmap != null) {
                                                 Image(
                                                     bitmap = imageBitmap,
