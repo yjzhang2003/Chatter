@@ -5,9 +5,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -73,6 +75,11 @@ enum class BottomNavTab(
         title = "智能体",
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.Person
+    ),
+    MCP(
+        title = "MCP",
+        selectedIcon = Icons.Filled.Extension,
+        unselectedIcon = Icons.Outlined.Extension
     ),
     SETTINGS(
         title = "设置",

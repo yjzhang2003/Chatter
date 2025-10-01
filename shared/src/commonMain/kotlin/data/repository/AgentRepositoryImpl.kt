@@ -173,6 +173,39 @@ class AgentRepositoryImpl(
         return mcpServiceDao.deleteAgentMCPConfig(configId)
     }
     
+    override suspend fun configureAgentMCPService(agentId: String, mcpServiceId: String, isEnabled: Boolean): Boolean {
+        return try {
+            // 检查是否已存在配置
+            val existingConfigs = getAgentMCPConfigs(agentId)
+            val existingConfig = existingConfigs.find { it.mcpServiceId == mcpServiceId }
+            
+            if (existingConfig != null) {
+                // 更新现有配置
+                val updatedConfig = existingConfig.copy(
+                    isEnabled = isEnabled,
+                    updatedAt = Clock.System.now()
+                )
+                updateAgentMCPConfig(updatedConfig)
+            } else if (isEnabled) {
+                // 创建新配置（仅当启用时）
+                val newConfig = AgentMCPConfig(
+                    id = "amc_${Clock.System.now().toEpochMilliseconds()}",
+                    agentId = agentId,
+                    mcpServiceId = mcpServiceId,
+                    isEnabled = true,
+                    createdAt = Clock.System.now(),
+                    updatedAt = Clock.System.now()
+                )
+                createAgentMCPConfig(newConfig)
+            } else {
+                // 如果不存在配置且要禁用，直接返回成功
+                true
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
     override suspend fun logMCPCall(log: MCPCallLog): Boolean {
         return mcpServiceDao.insertMCPCallLog(log)
     }

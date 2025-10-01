@@ -18,6 +18,9 @@ import presentation.ui.screen.AgentSelectionScreen
 import presentation.ui.screen.AgentEditScreen
 import presentation.ui.screen.AgentManagementScreen
 import presentation.ui.screen.AgentViewModel
+import presentation.ui.screen.MCPManagementScreen
+import presentation.ui.screen.MCPManagementViewModel
+import presentation.ui.screen.AgentMCPConfigScreen
 import presentation.ui.component.BottomNavigationBar
 import presentation.ui.component.BottomNavTab
 import domain.model.Conversation
@@ -73,12 +76,13 @@ fun App() {
     val conversationListViewModel = ConversationListViewModel(conversationRepository)
     val conversationDetailViewModel = ConversationDetailViewModel(conversationRepository, agentRepository, mcpIntegrationService)
     val agentViewModel = remember { AgentViewModel(agentRepository) }
+    val mcpManagementViewModel = remember { MCPManagementViewModel(agentRepository) }
     
     ChatterTheme {
         Scaffold(
             bottomBar = {
-                // 只在主要界面（对话列表、智能体管理和设置）显示底部导航栏
-                if (currentScreen == Screen.ConversationList || currentScreen == Screen.Settings || currentScreen == Screen.AgentManagement) {
+                // 只在主要界面（对话列表、智能体管理、MCP管理和设置）显示底部导航栏
+                if (currentScreen == Screen.ConversationList || currentScreen == Screen.Settings || currentScreen == Screen.AgentManagement || currentScreen == Screen.MCPManagement) {
                     BottomNavigationBar(
                         selectedTab = selectedTab,
                         onTabSelected = { tab ->
@@ -86,6 +90,7 @@ fun App() {
                             currentScreen = when (tab) {
                                 BottomNavTab.CONVERSATIONS -> Screen.ConversationList
                                 BottomNavTab.AGENTS -> Screen.AgentManagement
+                                BottomNavTab.MCP -> Screen.MCPManagement
                                 BottomNavTab.SETTINGS -> Screen.Settings
                             }
                         }
@@ -237,6 +242,20 @@ fun App() {
                         },
                         onDeleteAgentClick = { agent ->
                             agentViewModel.deleteAgent(agent.id)
+                        },
+                        onConfigureMCPClick = { agent ->
+                            selectedAgent = agent
+                            currentScreen = Screen.AgentMCPConfig
+                        }
+                    )
+                }
+                Screen.MCPManagement -> {
+                    MCPManagementScreen(
+                        mcpServices = mcpManagementViewModel.mcpServices.value,
+                        onAddMCPService = { mcpManagementViewModel.showAddDialog() },
+                        onConfigureMCPService = { service -> mcpManagementViewModel.showConfigDialog(service) },
+                        onToggleMCPService = { service, enabled -> 
+                            mcpManagementViewModel.toggleMCPService(service, enabled)
                         }
                     )
                 }
@@ -284,6 +303,25 @@ fun App() {
                         }
                     )
                 }
+                Screen.AgentMCPConfig -> {
+                    selectedAgent?.let { agent ->
+                        AgentMCPConfigScreen(
+                            agent = agent,
+                            availableMCPServices = mcpManagementViewModel.mcpServices.value,
+                            agentMCPConfigs = emptyList(), // TODO: 从ViewModel获取
+                            onBackClick = {
+                                currentScreen = Screen.AgentManagement
+                                selectedAgent = null
+                            },
+                            onToggleMCPService = { service, enabled ->
+                                mcpManagementViewModel.configureAgentMCPService(agent.id, service.id, enabled)
+                            },
+                            onConfigureMCPService = { service ->
+                                mcpManagementViewModel.showConfigDialog(service)
+                            }
+                        )
+                    }
+                }
                 Screen.ConversationDetail -> {
                     selectedConversation?.let { conversation ->
                         ConversationDetailScreen(
@@ -313,7 +351,9 @@ enum class Screen {
     ConversationDetail,
     AgentSelection,
     AgentEdit,
-    AgentManagement
+    AgentManagement,
+    MCPManagement,
+    AgentMCPConfig
 }
 
 /**

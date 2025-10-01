@@ -229,6 +229,15 @@ interface AgentRepository {
     suspend fun deleteAgentMCPConfig(configId: String): Boolean
     
     /**
+     * 配置智能体MCP服务
+     * @param agentId 智能体ID
+     * @param mcpServiceId MCP服务ID
+     * @param isEnabled 是否启用
+     * @return 配置是否成功
+     */
+    suspend fun configureAgentMCPService(agentId: String, mcpServiceId: String, isEnabled: Boolean): Boolean
+    
+    /**
      * 记录MCP调用日志
      * @param log MCP调用日志对象
      * @return 记录是否成功

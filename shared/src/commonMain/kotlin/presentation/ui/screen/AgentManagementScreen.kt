@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +29,8 @@ fun AgentManagementScreen(
     agents: List<Agent>,
     onCreateAgentClick: () -> Unit,
     onEditAgentClick: (Agent) -> Unit,
-    onDeleteAgentClick: (Agent) -> Unit
+    onDeleteAgentClick: (Agent) -> Unit,
+    onConfigureMCPClick: (Agent) -> Unit = {}
 ) {
     // 删除确认对话框状态
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -84,7 +86,8 @@ fun AgentManagementScreen(
                         onDeleteClick = { 
                             agentToDelete = agent
                             showDeleteDialog = true
-                        }
+                        },
+                        onConfigureMCPClick = { onConfigureMCPClick(agent) }
                     )
                 }
             }
@@ -107,7 +110,8 @@ fun AgentManagementScreen(
                         onDeleteClick = { 
                             agentToDelete = agent
                             showDeleteDialog = true
-                        }
+                        },
+                        onConfigureMCPClick = { onConfigureMCPClick(agent) }
                     )
                 }
             }
@@ -197,7 +201,8 @@ fun AgentManagementScreen(
 private fun AgentManagementCard(
     agent: Agent,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onConfigureMCPClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -251,8 +256,21 @@ private fun AgentManagementCard(
                     )
                 }
                 
-                // 编辑和删除按钮
+                // 操作按钮
                 Row {
+                    // MCP配置按钮
+                    IconButton(
+                        onClick = onConfigureMCPClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Extension,
+                            contentDescription = "配置MCP服务",
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    
                     IconButton(
                         onClick = onEditClick,
                         modifier = Modifier.size(32.dp)
