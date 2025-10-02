@@ -21,6 +21,7 @@ import presentation.ui.screen.AgentViewModel
 import presentation.ui.screen.MCPManagementScreen
 import presentation.ui.screen.MCPManagementViewModel
 import presentation.ui.screen.AgentMCPConfigScreen
+import presentation.ui.screen.AddMCPServiceDialog
 import presentation.ui.component.BottomNavigationBar
 import presentation.ui.component.BottomNavTab
 import domain.model.Conversation
@@ -258,6 +259,17 @@ fun App() {
                             mcpManagementViewModel.toggleMCPService(service, enabled)
                         }
                     )
+                    
+                    // 添加MCP服务对话框
+                    val uiState by mcpManagementViewModel.uiState.collectAsState()
+                    if (uiState.showAddDialog) {
+                        AddMCPServiceDialog(
+                            onDismiss = { mcpManagementViewModel.hideAddDialog() },
+                            onConfirm = { name, endpoint, description ->
+                                mcpManagementViewModel.addMCPService(name, endpoint, description)
+                            }
+                        )
+                    }
                 }
                 Screen.Settings -> {
                     SettingsScreen(
